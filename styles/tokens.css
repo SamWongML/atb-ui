@@ -8,26 +8,28 @@
  */
 
 :root {
-  --bg: #0b0a09;
-  --panel: #151312;
-  --panel-2: #1b1917;
-  --inset: #100f0e;
-  --raise: #211d1b;
-  --border: #272320;
-  --border-2: #342f2a;
-  --hair: #1d1a18;
+  --bg: #0b0a09; /* app canvas — lowest surface */
+  --panel: #151312; /* primary raised surface (cards, sidebar) */
+  --panel-2: #1b1917; /* secondary / muted panel surface */
+  --inset: #100f0e; /* recessed wells (inputs, code blocks) */
+  --raise: #211d1b; /* highest elevation (menus, popovers, tooltips) */
+  --border: #272320; /* default hairline border */
+  --border-2: #342f2a; /* stronger border (hover / emphasis) */
+  --hair: #1d1a18; /* faintest divider (below border) */
   --text: #f4f1ec;
   --text-2: #a8a29a;
   --text-3: #726b64;
   --text-4: #4c4642;
   --accent: #c96442;
   --accent-2: #d9764f;
+  --on-accent: #ffffff; /* text on saturated fills (accent/red buttons, logo mark) */
   --accent-bg: color-mix(in oklab, var(--accent) 15%, transparent);
   --accent-bd: color-mix(in oklab, var(--accent) 42%, transparent);
-  --sel-bg: color-mix(in oklab, var(--accent) 15%, transparent);
-  --sel-bd: color-mix(in oklab, var(--accent) 42%, transparent);
-  --accent-soft: color-mix(in oklab, var(--accent) 15%, transparent);
-  --accent-soft-bd: color-mix(in oklab, var(--accent) 42%, transparent);
+  /* Selection + soft-accent share the accent tint in dark; light differentiates on purpose. */
+  --sel-bg: var(--accent-bg);
+  --sel-bd: var(--accent-bd);
+  --accent-soft: var(--accent-bg);
+  --accent-soft-bd: var(--accent-bd);
   --clay: #cf6a44;
   --clay-bg: color-mix(in oklab, #cf6a44 16%, transparent);
   --green: #79a97a;
@@ -51,12 +53,6 @@
   --sans: "Geist", system-ui, sans-serif;
   --mono: "Geist Mono", ui-monospace, monospace;
   --serif: "Newsreader", Georgia, serif;
-  --title-font: var(--serif);
-  /* Back-link — single centralized token set, applied to every "go back" affordance */
-  --back-fg: var(--text-3);
-  --back-fg-hover: var(--text);
-  --back-gap: 6px;
-  --back-size: 12.5px;
 }
 
 [data-theme="light"] {
@@ -77,6 +73,7 @@
   /* Touch: Anthropic clay, deepened for AA on white, used sparingly. */
   --accent: #b85631;
   --accent-2: #c96844;
+  --on-accent: #ffffff;
   --accent-bg: color-mix(in oklab, var(--accent) 12%, #ffffff);
   --accent-bd: color-mix(in oklab, var(--accent) 24%, transparent);
   --sel-bg: color-mix(in oklab, var(--accent) 9%, #ffffff);

@@ -23,12 +23,18 @@
   --color-text-3: var(--text-3);
   --color-text-4: var(--text-4);
 
-  --color-accent: var(--accent);
-  --color-accent-2: var(--accent-2);
-  --color-accent-bg: var(--accent-bg);
-  --color-accent-bd: var(--accent-bd);
-  --color-accent-soft: var(--accent-soft);
-  --color-accent-soft-bd: var(--accent-soft-bd);
+  /* ATB brand (clay). shadcn's `primary` role + ATB's hover/soft shades. */
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--on-accent);
+  --color-primary-2: var(--accent-2);
+  --color-primary-bg: var(--accent-bg);
+  --color-primary-bd: var(--accent-bd);
+  --color-primary-soft: var(--accent-soft);
+  --color-primary-soft-bd: var(--accent-soft-bd);
+
+  /* shadcn's `accent` = subtle neutral hover/selected surface, NOT the brand. */
+  --color-accent: var(--nav-hover);
+  --color-accent-foreground: var(--text);
 
   --color-clay: var(--clay);
   --color-clay-bg: var(--clay-bg);
@@ -51,6 +57,28 @@
   /* shadcn/Radix focus + form primitives, mapped to ATB tokens. */
   --color-ring: var(--accent);
   --color-input: var(--border);
+
+  /*
+   * Bridge shadcn/ui's remaining role vocabulary (bg-background, bg-card,
+   * text-muted-foreground, etc.) onto ATB tokens, so `npx shadcn add <component>`
+   * output renders in the ATB look without hand-editing every generated file.
+   * `primary` and `accent` are defined above; `ring` / `input` above those.
+   */
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --color-card: var(--panel);
+  --color-card-foreground: var(--text);
+  --color-popover: var(--raise);
+  --color-popover-foreground: var(--text);
+  --color-secondary: var(--panel-2);
+  --color-secondary-foreground: var(--text);
+  --color-muted: var(--panel-2);
+  --color-muted-foreground: var(--text-3);
+  --color-destructive: var(--red);
+  --color-destructive-foreground: var(--on-accent);
+
+  /* `text-on-accent`: text/icons atop saturated brand (primary) or destructive fills. */
+  --color-on-accent: var(--on-accent);
 
   --font-sans: var(--sans);
   --font-mono: var(--mono);

@@ -10,7 +10,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen flex-col bg-bg text-text">
       <header className="flex h-[53px] flex-shrink-0 items-center gap-2.5 border-b border-border px-5">
         <div
-          className="grid size-7 place-items-center rounded-lg font-serif text-sm text-white"
+          className="grid size-7 place-items-center rounded-lg font-serif text-sm text-on-accent"
           style={{ background: "linear-gradient(160deg,var(--accent-2),var(--accent))" }}
           aria-hidden
         >
