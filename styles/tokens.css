@@ -1,0 +1,107 @@
+/*
+ * ATB design-system contract — the semantic token sets from the design prototype,
+ * verbatim (see docs/design_handoff_atb_frontend/README.md §Design Tokens).
+ *
+ * The runtime theme toggle flips `data-theme` on <html> between the default dark
+ * (`:root`) and light (`[data-theme="light"]`) sets; every color in the app is one
+ * of these variables, so the whole tree re-themes instantly. Never hardcode hex.
+ */
+
+:root {
+  --bg: #0b0a09;
+  --panel: #151312;
+  --panel-2: #1b1917;
+  --inset: #100f0e;
+  --raise: #211d1b;
+  --border: #272320;
+  --border-2: #342f2a;
+  --hair: #1d1a18;
+  --text: #f4f1ec;
+  --text-2: #a8a29a;
+  --text-3: #726b64;
+  --text-4: #4c4642;
+  --accent: #c96442;
+  --accent-2: #d9764f;
+  --accent-bg: color-mix(in oklab, var(--accent) 15%, transparent);
+  --accent-bd: color-mix(in oklab, var(--accent) 42%, transparent);
+  --sel-bg: color-mix(in oklab, var(--accent) 15%, transparent);
+  --sel-bd: color-mix(in oklab, var(--accent) 42%, transparent);
+  --accent-soft: color-mix(in oklab, var(--accent) 15%, transparent);
+  --accent-soft-bd: color-mix(in oklab, var(--accent) 42%, transparent);
+  --clay: #cf6a44;
+  --clay-bg: color-mix(in oklab, #cf6a44 16%, transparent);
+  --green: #79a97a;
+  --green-bg: color-mix(in oklab, #79a97a 15%, transparent);
+  --blue: #6f97c2;
+  --blue-bg: color-mix(in oklab, #6f97c2 15%, transparent);
+  --amber: #d2a05f;
+  --amber-bg: color-mix(in oklab, #d2a05f 15%, transparent);
+  --violet: #8f86d0;
+  --violet-bg: color-mix(in oklab, #8f86d0 15%, transparent);
+  --purple: #ab93cb;
+  --purple-bg: color-mix(in oklab, #ab93cb 15%, transparent);
+  --red: #cd6b58;
+  --red-bg: color-mix(in oklab, #cd6b58 15%, transparent);
+  --chip: rgba(255, 255, 255, 0.05);
+  --chip-bd: rgba(255, 255, 255, 0.09);
+  --nav-active: rgba(255, 255, 255, 0.06);
+  --nav-hover: rgba(255, 255, 255, 0.032);
+  --track: rgba(255, 255, 255, 0.07);
+  --shadow: 0 18px 50px -18px rgba(0, 0, 0, 0.7);
+  --sans: "Geist", system-ui, sans-serif;
+  --mono: "Geist Mono", ui-monospace, monospace;
+  --serif: "Newsreader", Georgia, serif;
+  --title-font: var(--serif);
+  /* Back-link — single centralized token set, applied to every "go back" affordance */
+  --back-fg: var(--text-3);
+  --back-fg-hover: var(--text);
+  --back-gap: 6px;
+  --back-size: 12.5px;
+}
+
+[data-theme="light"] {
+  /* Skeleton: Vercel/Linear crispness — de-warmed, low-chroma neutrals, white cards on a whisper-warm canvas. */
+  --bg: #f6f5f2;
+  --panel: #ffffff;
+  --panel-2: #faf9f6;
+  --inset: #f0eeea;
+  --raise: #ffffff;
+  --border: #e8e5df;
+  --border-2: #dbd7cf;
+  --hair: #efece7;
+  /* Contrast: Linear "darker text in light mode" — near-black, de-warmed steps. */
+  --text: #1c1a17;
+  --text-2: #55514b;
+  --text-3: #78736b;
+  --text-4: #a7a199;
+  /* Touch: Anthropic clay, deepened for AA on white, used sparingly. */
+  --accent: #b85631;
+  --accent-2: #c96844;
+  --accent-bg: color-mix(in oklab, var(--accent) 12%, #ffffff);
+  --accent-bd: color-mix(in oklab, var(--accent) 24%, transparent);
+  --sel-bg: color-mix(in oklab, var(--accent) 9%, #ffffff);
+  --sel-bd: color-mix(in oklab, var(--accent) 30%, transparent);
+  --accent-soft: color-mix(in oklab, var(--accent) 10%, #ffffff);
+  --accent-soft-bd: color-mix(in oklab, var(--accent) 32%, transparent);
+  --clay: #b05631;
+  --clay-bg: color-mix(in oklab, #b05631 12%, #ffffff);
+  --green: #43793f;
+  --green-bg: color-mix(in oklab, #43793f 12%, #ffffff);
+  --blue: #3d72a6;
+  --blue-bg: color-mix(in oklab, #3d72a6 12%, #ffffff);
+  --amber: #92661f;
+  --amber-bg: color-mix(in oklab, #92661f 13%, #ffffff);
+  --violet: #5f56bd;
+  --violet-bg: color-mix(in oklab, #5f56bd 12%, #ffffff);
+  --purple: #7a5eae;
+  --purple-bg: color-mix(in oklab, #7a5eae 12%, #ffffff);
+  --red: #bd4b36;
+  --red-bg: color-mix(in oklab, #bd4b36 12%, #ffffff);
+  --chip: rgba(28, 26, 23, 0.045);
+  --chip-bd: rgba(28, 26, 23, 0.1);
+  --nav-active: rgba(28, 26, 23, 0.055);
+  --nav-hover: rgba(28, 26, 23, 0.03);
+  --track: rgba(28, 26, 23, 0.08);
+  /* Elevation: Vercel spec — borders + tonal surfaces first, shadows subtle. */
+  --shadow: 0 1px 2px rgba(30, 26, 21, 0.05), 0 12px 28px -14px rgba(30, 26, 21, 0.16);
+}

@@ -1,0 +1,41 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# next.js
+.next/
+out/
+build/
+next-env.d.ts
+
+# testing
+coverage/
+
+# production
+dist/
+
+# infra (AWS CDK)
+infra/cdk.out/
+infra/node_modules/
+
+# misc
+.DS_Store
+*.pem
+.vscode/
+.idea/
+
+# env / secrets — secrets live at the BFF / Secrets Manager, never in the repo
+.env
+.env*.local
+.env.production
+
+# logs
+npm-debug.log*
+pnpm-debug.log*
+
+# vitest
+.vitest/
+
+# typescript incremental build cache
+*.tsbuildinfo
