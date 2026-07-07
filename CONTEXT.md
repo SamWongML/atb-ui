@@ -36,6 +36,13 @@ Conventions: schemas live with their feature and are shared client+server. Never
 hardcode hex — use the token utilities bound in `styles/globals.css`. `app/` is routing
 glue only. All tests run against MSW (`onUnhandledRequest: "error"`).
 
+**Adding shadcn components:** `styles/globals.css` (`@theme inline`) bridges shadcn's
+role vocabulary (`bg-background`, `bg-card`, `text-muted-foreground`, `bg-destructive`,
+…) onto ATB tokens, so `npx shadcn add <component>` renders in the ATB look with no
+hand-patching. One naming trap: shadcn's `accent` role is a subtle neutral
+hover/selected surface, not the ATB brand color — the brand (clay) is `primary`. Don't
+reach for `accent`/`bg-accent` expecting the brand color.
+
 ## Phase status
 
 Phase 0 (foundation) is complete. Next: Phase 1 — app shell (sidebar nav, ⌘K, entity
