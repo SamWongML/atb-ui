@@ -23,4 +23,23 @@ describe("sessions router", () => {
     const anon = appRouter.createCaller({ session: null });
     await expect(anon.sessions.list()).rejects.toThrow();
   });
+
+  it("returns a session's canvas (plan/run/diff/trace) for an authenticated caller", async () => {
+    const canvas = await appRouter.createCaller(authed).sessions.canvas({ sessionId: "sess_01" });
+    expect(canvas.sessionId).toBe("sess_01");
+    expect(canvas.plan.length).toBeGreaterThan(0);
+    expect(canvas.diff).toContain("diff --git");
+    expect(canvas.trace.every((span) => span.durationMs >= 0)).toBe(true);
+  });
+
+  it("rejects a canvas request for an unknown session", async () => {
+    await expect(
+      appRouter.createCaller(authed).sessions.canvas({ sessionId: "nope" }),
+    ).rejects.toThrow(/not found/i);
+  });
+
+  it("gates the canvas behind a session", async () => {
+    const anon = appRouter.createCaller({ session: null });
+    await expect(anon.sessions.canvas({ sessionId: "sess_01" })).rejects.toThrow();
+  });
 });

@@ -11,10 +11,21 @@ Element.prototype.setPointerCapture ??= () => {};
 Element.prototype.releasePointerCapture ??= () => {};
 Element.prototype.scrollIntoView ??= () => {};
 
-// cmdk observes its list container; jsdom has no ResizeObserver.
+// cmdk and TanStack Virtual observe their scroll containers; jsdom has no
+// ResizeObserver and never lays anything out (every rect is 0×0). Report a fixed
+// viewport on observe so a virtualized list computes a non-empty range in tests —
+// the layout analogue of the pointer-capture shims above.
 if (!globalThis.ResizeObserver) {
   globalThis.ResizeObserver = class {
-    observe() {}
+    #cb: ResizeObserverCallback;
+    constructor(cb: ResizeObserverCallback) {
+      this.#cb = cb;
+    }
+    observe(target: Element) {
+      const box = { inlineSize: 800, blockSize: 900 } as ResizeObserverSize;
+      const entry = { target, borderBoxSize: [box], contentBoxSize: [box] };
+      this.#cb([entry as unknown as ResizeObserverEntry], this);
+    }
     unobserve() {}
     disconnect() {}
   };
