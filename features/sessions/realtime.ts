@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { planStepSchema, runLogLineSchema, sessionCanvasSchema, traceSpanSchema } from "./canvas";
 import { type SessionStatus, sessionStatusSchema, sessionStepsSchema } from "./schema";
 
 // Realtime frame contracts (ARCHITECTURE.md §Real-time). One schema per frame,
@@ -81,14 +82,54 @@ export const controlEventSchema = z.object({
   status: sessionStatusSchema,
 });
 
+// --- Canvas frames (the Plan/Run/Diff/Trace views, fed through the same sink) ---
+
+/** A full canvas snapshot — seeds the canvas cache entry at stream start. */
+export const canvasEventSchema = z.object({
+  type: z.literal("canvas"),
+  sessionId: z.string(),
+  canvas: sessionCanvasSchema,
+});
+
+/** The plan advanced — replaces the plan (step states move pending → active → done). */
+export const planEventSchema = z.object({
+  type: z.literal("plan"),
+  sessionId: z.string(),
+  plan: z.array(planStepSchema),
+});
+
+/** One new run-log line to append (the agent's terminal grows). */
+export const runLogEventSchema = z.object({
+  type: z.literal("run_log"),
+  sessionId: z.string(),
+  line: runLogLineSchema,
+});
+
+/** One new trace span to append. */
+export const traceEventSchema = z.object({
+  type: z.literal("trace"),
+  sessionId: z.string(),
+  span: traceSpanSchema,
+});
+
+/** The canvas-family frames — routed to the session's canvas cache entry, not its detail. */
+export const CANVAS_EVENT_TYPES = ["canvas", "plan", "run_log", "trace"] as const;
+
 export const realtimeEventSchema = z.discriminatedUnion("type", [
   tokenEventSchema,
   messageEndEventSchema,
   statusEventSchema,
   stepEventSchema,
   controlEventSchema,
+  canvasEventSchema,
+  planEventSchema,
+  runLogEventSchema,
+  traceEventSchema,
 ]);
 export type RealtimeEvent = z.infer<typeof realtimeEventSchema>;
+
+/** A canvas-family frame (narrowed by the discriminant). */
+export type CanvasEvent = Extract<RealtimeEvent, { type: (typeof CANVAS_EVENT_TYPES)[number] }>;
 
 // --- WS outbound (client → BFF control message) ---
 

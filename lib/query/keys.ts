@@ -7,6 +7,8 @@ export const queryKeys = {
   sessions: () => ["sessions"] as const,
   /** One session's detail + streaming transcript — the reconcile() sink target. */
   session: (id: string) => ["session", id] as const,
+  /** One session's canvas (Plan/Run/Diff/Trace) — a second live reconcile() target. */
+  sessionCanvas: (id: string) => ["session", id, "canvas"] as const,
 };
 
 export type SessionQueryKey = ReturnType<typeof queryKeys.session>;

@@ -137,3 +137,16 @@
     opacity: 0.28;
   }
 }
+
+/*
+ * Shiki dual-theme binding for the canvas Diff tab (features/sessions/diff-view). Shiki
+ * emits `defaultColor:false` tokens carrying `--shiki-light`/`--shiki-dark` vars; bind
+ * them to the active theme here (dark is the `:root` default) so code color stays in CSS.
+ */
+.shiki-inline span {
+  color: var(--shiki-dark);
+}
+
+[data-theme="light"] .shiki-inline span {
+  color: var(--shiki-light);
+}
