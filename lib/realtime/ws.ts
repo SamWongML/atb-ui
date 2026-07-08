@@ -1,7 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { WebSocket as ReconnectingWebSocket } from "partysocket";
-import type { ControlAction, ControlCommand } from "@/features/sessions/realtime";
-import type { SessionStatus } from "@/features/sessions/schema";
+import { CONTROL_STATUS, type ControlCommand } from "@/features/sessions/realtime";
 import { reconcile } from "./reconcile";
 import { handleSseMessage, type SseHandlers } from "./sse";
 
@@ -12,12 +11,6 @@ import { handleSseMessage, type SseHandlers } from "./sse";
 
 /** The minimal outbound surface, so sendControl is testable without a real socket. */
 export type ControlTransport = { send: (data: string) => void };
-
-/** How the UI reflects a control action before the engine's authoritative echo. */
-const OPTIMISTIC_STATUS: Record<ControlAction, SessionStatus> = {
-  approve: "active",
-  interrupt: "needs_you",
-};
 
 export function serializeControlCommand(command: ControlCommand): string {
   return JSON.stringify(command);
@@ -37,7 +30,7 @@ export function sendControl(
     type: "control",
     sessionId: command.sessionId,
     action: command.action,
-    status: OPTIMISTIC_STATUS[command.action],
+    status: CONTROL_STATUS[command.action],
   });
   transport.send(serializeControlCommand(command));
 }

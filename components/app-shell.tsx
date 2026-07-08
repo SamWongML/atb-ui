@@ -11,6 +11,8 @@ import { WorkspaceSwitcher } from "@/components/workspace-switcher";
 import { CommandMenu } from "@/features/command-menu/command-menu";
 import type { CommandAction } from "@/features/command-menu/command-palette";
 import { useCommandMenu } from "@/features/command-menu/store";
+import { sessionBreadcrumbEntity } from "@/features/sessions/breadcrumb";
+import type { Session } from "@/features/sessions/schema";
 import { toggleTheme } from "@/lib/theme";
 import {
   DEFAULT_ENVIRONMENT_ID,
@@ -34,9 +36,20 @@ async function signOut() {
 // nav · account) + a main column (breadcrumb header · scrolling content). Sub-parts
 // are individually tested; this composes them and wires the ⌘K palette + account menu.
 
-export function AppShell({ children, user }: { children: ReactNode; user?: SessionUser }) {
+export function AppShell({
+  children,
+  user,
+  sessions = [],
+}: {
+  children: ReactNode;
+  user?: SessionUser;
+  sessions?: readonly Session[];
+}) {
   const pathname = usePathname() || "/overview";
   const setPaletteOpen = useCommandMenu((state) => state.setOpen);
+
+  const entity = sessionBreadcrumbEntity(pathname, sessions);
+  const sessionCount = sessions.length || undefined;
 
   const [workspaceId, setWorkspaceId] = useState<string>(DEFAULT_WORKSPACE_ID);
   const [environmentId, setEnvironmentId] = useState<EnvironmentId>(DEFAULT_ENVIRONMENT_ID);
@@ -58,7 +71,7 @@ export function AppShell({ children, user }: { children: ReactNode; user?: Sessi
           onSelectWorkspace={setWorkspaceId}
           onSelectEnvironment={setEnvironmentId}
         />
-        <SidebarNav pathname={pathname} onNewSession={runNewSession} />
+        <SidebarNav pathname={pathname} sessionCount={sessionCount} onNewSession={runNewSession} />
         <div className="mt-auto">
           <AccountMenu user={user} onOpenCommandMenu={() => setPaletteOpen(true)} />
         </div>
@@ -66,7 +79,7 @@ export function AppShell({ children, user }: { children: ReactNode; user?: Sessi
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-[53px] flex-shrink-0 items-center justify-between gap-4 border-b border-border px-5">
-          <BreadcrumbNav pathname={pathname} />
+          <BreadcrumbNav pathname={pathname} entity={entity} />
           <button
             type="button"
             onClick={() => setPaletteOpen(true)}

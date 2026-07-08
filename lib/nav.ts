@@ -59,12 +59,17 @@ export const NAV_GROUPS: readonly NavGroup[] = [
 /** Flat list of every nav item, in sidebar order (for the palette + breadcrumb lookups). */
 export const NAV_ITEMS: readonly NavItem[] = NAV_GROUPS.flatMap((group) => group.items);
 
+/** Whether a nav item owns the pathname — its exact route or a nested child of it. */
+export function isNavItemActive(pathname: string, item: NavItem): boolean {
+  return pathname === item.href || pathname.startsWith(`${item.href}/`);
+}
+
 /**
  * The nav item that owns a given pathname — the longest matching route, so
  * `/sessions/sess_01` resolves to Sessions, and `/` resolves to nothing.
  */
 export function activeNavItem(pathname: string): NavItem | undefined {
-  return NAV_ITEMS.filter(
-    (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
-  ).sort((a, b) => b.href.length - a.href.length)[0];
+  return NAV_ITEMS.filter((item) => isNavItemActive(pathname, item)).sort(
+    (a, b) => b.href.length - a.href.length,
+  )[0];
 }

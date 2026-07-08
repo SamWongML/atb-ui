@@ -1,38 +1,17 @@
 "use client";
 
-import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import type { ControlAction } from "@/features/sessions/realtime";
-import { reconcile } from "@/lib/realtime/reconcile";
-import { type ControlSocket, openControlSocket, sendControl } from "@/lib/realtime/ws";
+import { useControlSocket } from "../hooks/use-control-socket";
 import { useSessionStream } from "../hooks/use-session-stream";
 import { SessionTranscript } from "./session-transcript";
 
 // The live session surface (Phase 1 exit demo). Streams tokens via useSessionStream
-// and steers via the control socket — approve/interrupt update the cache optimistically
-// and reconcile to the authoritative echo through the same sink.
+// and steers via useControlSocket — approve/interrupt update the cache optimistically
+// and reconcile to the authoritative echo through the same sink. The component only
+// reads the cache and calls steer(); it never touches a socket.
 export function SessionView({ sessionId }: { sessionId: string }) {
-  const queryClient = useQueryClient();
   const { data } = useSessionStream(sessionId);
-  const socketRef = useRef<ControlSocket | null>(null);
-
-  useEffect(() => {
-    const socket = openControlSocket({
-      sessionId,
-      onEvent: (event) => reconcile(queryClient, event),
-    });
-    socketRef.current = socket;
-    return () => {
-      socket.close();
-      socketRef.current = null;
-    };
-  }, [sessionId, queryClient]);
-
-  function steer(action: ControlAction) {
-    if (!socketRef.current) return;
-    sendControl(socketRef.current, queryClient, { type: "control", sessionId, action });
-  }
+  const steer = useControlSocket(sessionId);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">

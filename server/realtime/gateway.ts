@@ -1,9 +1,9 @@
 import {
+  CONTROL_STATUS,
   type ControlCommand,
   controlCommandSchema,
   type RealtimeEvent,
 } from "@/features/sessions/realtime";
-import type { SessionStatus } from "@/features/sessions/schema";
 import type { SessionBackplane } from "./backplane";
 
 // WS gateway (ARCHITECTURE.md §"Return path"). Receives steering commands, computes
@@ -11,18 +11,13 @@ import type { SessionBackplane } from "./backplane";
 // reaches every task's subscribers — the same reconcile() sink then confirms the
 // client's optimistic update.
 
-const AUTHORITATIVE_STATUS: Record<ControlCommand["action"], SessionStatus> = {
-  approve: "active",
-  interrupt: "needs_you",
-};
-
 /** The mock engine's authoritative outcome for a control action. */
 export function applyControl(command: ControlCommand): RealtimeEvent {
   return {
     type: "control",
     sessionId: command.sessionId,
     action: command.action,
-    status: AUTHORITATIVE_STATUS[command.action],
+    status: CONTROL_STATUS[command.action],
   };
 }
 

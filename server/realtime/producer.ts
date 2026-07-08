@@ -21,3 +21,24 @@ export function mockTokenStream(
   frames.push({ type: "status", sessionId, status: "review" });
   return frames;
 }
+
+/** Delay between mock frames so tokens arrive as a visible stream, not one burst. */
+export const MOCK_FRAME_INTERVAL_MS = 40;
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * The mock stream, paced: yields the first frame immediately (so the stream opens with
+ * no lag) then spaces the rest by MOCK_FRAME_INTERVAL_MS. The route publishes each
+ * yielded frame onto the backplane as real agent output would arrive over time.
+ */
+export async function* streamMockTokens(
+  sessionId: string,
+  intervalMs = MOCK_FRAME_INTERVAL_MS,
+): AsyncGenerator<RealtimeEvent> {
+  const frames = mockTokenStream(sessionId);
+  for (let i = 0; i < frames.length; i++) {
+    if (i > 0) await wait(intervalMs);
+    yield frames[i] as RealtimeEvent;
+  }
+}

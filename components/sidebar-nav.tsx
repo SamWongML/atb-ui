@@ -2,7 +2,7 @@
 
 import { Plus } from "lucide-react";
 import Link from "next/link";
-import { NAV_GROUPS, type NavItem } from "@/lib/nav";
+import { isNavItemActive, NAV_GROUPS } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
 // Presentational sidebar navigation (README.md §App Shell). Active state and the
@@ -10,10 +10,6 @@ import { cn } from "@/lib/utils";
 // the container (app/(app)/layout.tsx) wires usePathname() + the sessions query.
 
 const MICRO_LABEL = "px-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-text-4";
-
-function isActive(pathname: string, item: NavItem): boolean {
-  return pathname === item.href || pathname.startsWith(`${item.href}/`);
-}
 
 export type SidebarNavProps = {
   pathname: string;
@@ -40,7 +36,7 @@ export function SidebarNav({ pathname, sessionCount, onNewSession }: SidebarNavP
           <p className={MICRO_LABEL}>{group.label}</p>
           <ul className="flex flex-col gap-0.5">
             {group.items.map((item) => {
-              const active = isActive(pathname, item);
+              const active = isNavItemActive(pathname, item);
               const Icon = item.icon;
               return (
                 <li key={item.href}>
