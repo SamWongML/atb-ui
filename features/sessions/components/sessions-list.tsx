@@ -9,10 +9,11 @@ import { filterSessions, groupSessions, SESSION_FILTER_VALUES, SESSION_FILTERS }
 import type { Session } from "../schema";
 import { STATUS_META } from "../status";
 
-// The hero surface's list (README.md §Sessions): a flat server list, bucketed into the
-// ordered status groups and filtered by the active tab. The rows are virtualized
-// (TanStack Virtual) so a long, live-updating list stays cheap (ARCHITECTURE.md budgets:
-// "virtualize every live list"). Server data arrives as a prop — the RSC page fetches it.
+// The hero surface's list (README.md §Sessions): a flat server snapshot (fetched through
+// the BFF, refreshed on navigation), bucketed into the ordered status groups and filtered
+// by the active tab. Rows are virtualized (TanStack Virtual) to stay cheap as the list
+// grows — the readiness the "virtualize every live list" budget calls for. Data arrives
+// as a prop; the RSC page reads it via tRPC.
 
 /** A flattened virtual row: a group header or one session. */
 type Row =
@@ -33,6 +34,9 @@ function toRows(sessions: Session[]): Row[] {
 
 const HEADER_SIZE = 40;
 const ROW_SIZE = 68;
+// A viewport to seed the virtualizer with before it can measure real layout — the server
+// render (and jsdom) have none, so without this the first paint computes an empty range.
+const PREMEASURE_VIEWPORT = { width: 760, height: 900 };
 
 export function SessionsList({ sessions }: { sessions: readonly Session[] }) {
   // The active filter lives in the URL (nuqs, TECH_STACK.md L4) so a filtered view is
@@ -50,9 +54,7 @@ export function SessionsList({ sessions }: { sessions: readonly Session[] }) {
     getScrollElement: () => scrollRef.current,
     estimateSize: (index) => (rows[index]?.kind === "header" ? HEADER_SIZE : ROW_SIZE),
     overscan: 8,
-    // jsdom never measures a layout; seed a viewport so tests (and the first paint) see
-    // rows before the ResizeObserver settles the real height.
-    initialRect: { width: 760, height: 900 },
+    initialRect: PREMEASURE_VIEWPORT,
   });
 
   return (

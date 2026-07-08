@@ -5,6 +5,7 @@ import { NuqsTestingAdapter, type OnUrlUpdateFunction } from "nuqs/adapters/test
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { reconcile } from "@/lib/realtime/reconcile";
+import { codeLine } from "@/test/dom";
 import type { SessionCanvas as SessionCanvasData } from "../canvas";
 import { SessionCanvas } from "./session-canvas";
 
@@ -52,9 +53,6 @@ function renderCanvas(options: { searchParams?: string; onUrlUpdate?: OnUrlUpdat
   render(<SessionCanvas sessionId="sess_01" initialCanvas={canvas} />, { wrapper });
   return client;
 }
-
-const codeLine = (text: string) =>
-  screen.getByText((_c, el) => el?.tagName === "CODE" && el.textContent === text);
 
 describe("SessionCanvas", () => {
   it("offers the four canvas tabs", () => {

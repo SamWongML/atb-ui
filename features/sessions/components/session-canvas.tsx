@@ -55,7 +55,7 @@ export function SessionCanvas({
                 "rounded-md px-3 py-1 text-[12.5px] font-medium transition-colors",
                 selected
                   ? "bg-primary-soft text-primary"
-                  : "text-text-3 hover:bg-accent hover:text-text-2",
+                  : "text-text-3 hover:bg-[var(--nav-hover)] hover:text-text-2",
               )}
             >
               {label}

@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { codeLine } from "@/test/dom";
 import { DiffView } from "./diff-view";
 
 // Seam: the canvas Diff tab's public output. It renders the parsed unified diff (diff.ts)
@@ -14,9 +15,6 @@ const DIFF = `diff --git a/src/f.ts b/src/f.ts
 +const a = 2;
  const b = 3;
 `;
-
-const codeLine = (text: string) =>
-  screen.getByText((_content, el) => el?.tagName === "CODE" && el.textContent === text);
 
 describe("DiffView", () => {
   it("renders the file path header", () => {
