@@ -38,6 +38,28 @@ jobs:
       - name: Build
         run: pnpm build
 
+  infra:
+    name: Infra (CDK typecheck)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: infra/pnpm-lock.yaml
+
+      - name: Install
+        working-directory: infra
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        working-directory: infra
+        run: pnpm typecheck
+
   # Skeleton deploy: build image → push to ECR → roll the ECS service.
   # Opt-in: set repo variable DEPLOY_ENABLED=true and the AWS_* secrets/vars.
   deploy-staging:
