@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NuqsTestingAdapter, type OnUrlUpdateFunction } from "nuqs/adapters/testing";
 import type { ReactNode } from "react";
@@ -39,7 +39,13 @@ const canvas: SessionCanvasData = {
 function renderCanvas(options: { searchParams?: string; onUrlUpdate?: OnUrlUpdateFunction } = {}) {
   const client = new QueryClient();
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <NuqsTestingAdapter searchParams={options.searchParams} onUrlUpdate={options.onUrlUpdate}>
+    // hasMemory makes the adapter remember URL writes, like the real Next adapter — so a
+    // throttled write settles instead of dropping the optimistic value on the next render.
+    <NuqsTestingAdapter
+      hasMemory
+      searchParams={options.searchParams}
+      onUrlUpdate={options.onUrlUpdate}
+    >
       <QueryClientProvider client={client}>{children}</QueryClientProvider>
     </NuqsTestingAdapter>
   );
@@ -92,6 +98,24 @@ describe("SessionCanvas", () => {
     expect(screen.getByText(/failed/i)).toBeInTheDocument();
   });
 
+  it("keeps the active tab after a stream frame reconciles post-switch", async () => {
+    const user = userEvent.setup();
+    const onUrlUpdate = vi.fn();
+    const client = renderCanvas({ onUrlUpdate });
+
+    await user.click(screen.getByRole("tab", { name: "Run" }));
+    reconcile(client, {
+      type: "run_log",
+      sessionId: "sess_01",
+      line: { id: "r3", at: "2026-07-07T10:11:02.000Z", level: "info", text: "later line" },
+    });
+
+    // Once the throttled URL write flushes, the selected tab must persist — a stream
+    // frame re-rendering the canvas must not snap it back to the default.
+    await waitFor(() => expect(onUrlUpdate).toHaveBeenCalled());
+    expect(screen.getByRole("tab", { name: "Run" })).toHaveAttribute("aria-selected", "true");
+  });
+
   it("reads the active tab from the URL", () => {
     renderCanvas({ searchParams: "?tab=trace" });
     expect(screen.getByRole("tab", { name: "Trace" })).toHaveAttribute("aria-selected", "true");
@@ -109,7 +133,10 @@ describe("SessionCanvas", () => {
   });
 
   it("updates live when a run-log frame is reconciled into the cache", async () => {
-    const client = renderCanvas({ searchParams: "?tab=run" });
+    const user = userEvent.setup();
+    const client = renderCanvas();
+
+    await user.click(screen.getByRole("tab", { name: "Run" }));
     expect(screen.queryByText("diff applied")).not.toBeInTheDocument();
 
     reconcile(client, {

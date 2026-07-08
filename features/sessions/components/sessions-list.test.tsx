@@ -23,7 +23,12 @@ const sessions: Session[] = [
 
 function renderList(options: { searchParams?: string; onUrlUpdate?: OnUrlUpdateFunction } = {}) {
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <NuqsTestingAdapter searchParams={options.searchParams} onUrlUpdate={options.onUrlUpdate}>
+    // hasMemory makes the adapter remember URL writes, like the real Next adapter.
+    <NuqsTestingAdapter
+      hasMemory
+      searchParams={options.searchParams}
+      onUrlUpdate={options.onUrlUpdate}
+    >
       {children}
     </NuqsTestingAdapter>
   );
