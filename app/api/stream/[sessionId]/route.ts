@@ -1,6 +1,6 @@
 import { toSseFrame } from "@/lib/realtime/encode";
 import { getSessionFromRequest } from "@/server/auth/service";
-import { streamMockTokens } from "@/server/realtime/producer";
+import { streamMockSession } from "@/server/realtime/producer";
 import { getBackplane } from "@/server/redis";
 
 // SSE token proxy (ARCHITECTURE.md §Real-time step 2). Auth at the BFF, then a
@@ -43,7 +43,7 @@ export async function POST(
       });
       // Mock agent: publish the session's frames onto the backplane over time (fans out
       // to every task). Stop early if the client disconnected mid-stream.
-      for await (const frame of streamMockTokens(sessionId)) {
+      for await (const frame of streamMockSession(sessionId)) {
         if (!open) break;
         await backplane.publish(sessionId, frame);
       }

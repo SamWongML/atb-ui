@@ -26,6 +26,9 @@ export function groupSessions(sessions: Session[]): SessionGroup[] {
 /** The filter tab a session belongs to — "all" plus each status, in priority order. */
 export type SessionFilter = "all" | SessionStatus;
 
+/** Filter values as a literal tuple — the URL parser (nuqs) validates against this. */
+export const SESSION_FILTER_VALUES = ["all", ...STATUS_ORDER] as const;
+
 export const SESSION_FILTERS: ReadonlyArray<{ value: SessionFilter; label: string }> = [
   { value: "all", label: "All" },
   ...STATUS_ORDER.map((status) => ({ value: status, label: STATUS_META[status].label })),

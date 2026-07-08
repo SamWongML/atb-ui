@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { cn } from "@/lib/utils";
 import type {
   PlanStep,
@@ -8,17 +8,32 @@ import type {
   SessionCanvas as SessionCanvasData,
   TraceSpan,
 } from "../canvas";
+import { useSessionCanvas } from "../hooks/use-session-canvas";
 import { DiffView } from "./diff-view";
 
 // The session canvas (README.md §Sessions): the four working views beside the streaming
-// transcript. Tab state is local UI state; each view is a pure render of its slice of the
-// canvas payload the BFF serves (server/services/sessions.ts).
+// transcript. The canvas is read from the Query cache — seeded by the RSC snapshot and
+// updated by reconcile() as stream frames arrive — so the views grow live without the
+// component touching a socket (ARCHITECTURE.md §Real-time). The active tab lives in the
+// URL (nuqs, TECH_STACK.md L4) so a canvas view is shareable and survives reload.
 
-const TABS = ["Plan", "Run", "Diff", "Trace"] as const;
-type Tab = (typeof TABS)[number];
+const TABS = [
+  { value: "plan", label: "Plan" },
+  { value: "run", label: "Run" },
+  { value: "diff", label: "Diff" },
+  { value: "trace", label: "Trace" },
+] as const;
+const TAB_VALUES = ["plan", "run", "diff", "trace"] as const;
 
-export function SessionCanvas({ canvas }: { canvas: SessionCanvasData }) {
-  const [tab, setTab] = useState<Tab>("Plan");
+export function SessionCanvas({
+  sessionId,
+  initialCanvas,
+}: {
+  sessionId: string;
+  initialCanvas: SessionCanvasData;
+}) {
+  const canvas = useSessionCanvas(sessionId, initialCanvas);
+  const [tab, setTab] = useQueryState("tab", parseAsStringLiteral(TAB_VALUES).withDefault("plan"));
 
   return (
     <section className="flex min-h-0 flex-col rounded-xl border border-border bg-panel">
@@ -27,33 +42,33 @@ export function SessionCanvas({ canvas }: { canvas: SessionCanvasData }) {
         aria-label="Session canvas"
         className="flex gap-1 border-b border-hair p-1.5"
       >
-        {TABS.map((name) => {
-          const selected = name === tab;
+        {TABS.map(({ value, label }) => {
+          const selected = value === tab;
           return (
             <button
-              key={name}
+              key={value}
               type="button"
               role="tab"
               aria-selected={selected}
-              onClick={() => setTab(name)}
+              onClick={() => void setTab(value)}
               className={cn(
                 "rounded-md px-3 py-1 text-[12.5px] font-medium transition-colors",
                 selected
                   ? "bg-primary-soft text-primary"
-                  : "text-text-3 hover:bg-[var(--nav-hover)] hover:text-text-2",
+                  : "text-text-3 hover:bg-accent hover:text-text-2",
               )}
             >
-              {name}
+              {label}
             </button>
           );
         })}
       </div>
 
       <div role="tabpanel" className="min-h-0 flex-1 overflow-auto p-4">
-        {tab === "Plan" && <PlanView plan={canvas.plan} />}
-        {tab === "Run" && <RunView run={canvas.run} />}
-        {tab === "Diff" && <DiffView diff={canvas.diff} />}
-        {tab === "Trace" && <TraceView trace={canvas.trace} />}
+        {tab === "plan" && <PlanView plan={canvas.plan} />}
+        {tab === "run" && <RunView run={canvas.run} />}
+        {tab === "diff" && <DiffView diff={canvas.diff} />}
+        {tab === "trace" && <TraceView trace={canvas.trace} />}
       </div>
     </section>
   );

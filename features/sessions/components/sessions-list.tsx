@@ -2,9 +2,10 @@
 
 import { useVirtualizer } from "@tanstack/react-virtual";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { parseAsStringLiteral, useQueryState } from "nuqs";
+import { useRef } from "react";
 import { cn } from "@/lib/utils";
-import { filterSessions, groupSessions, SESSION_FILTERS, type SessionFilter } from "../grouping";
+import { filterSessions, groupSessions, SESSION_FILTER_VALUES, SESSION_FILTERS } from "../grouping";
 import type { Session } from "../schema";
 import { STATUS_META } from "../status";
 
@@ -34,7 +35,12 @@ const HEADER_SIZE = 40;
 const ROW_SIZE = 68;
 
 export function SessionsList({ sessions }: { sessions: readonly Session[] }) {
-  const [filter, setFilter] = useState<SessionFilter>("all");
+  // The active filter lives in the URL (nuqs, TECH_STACK.md L4) so a filtered view is
+  // shareable, reloadable, and back-button-correct.
+  const [filter, setFilter] = useQueryState(
+    "filter",
+    parseAsStringLiteral(SESSION_FILTER_VALUES).withDefault("all"),
+  );
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const rows = toRows(filterSessions([...sessions], filter));
@@ -60,7 +66,7 @@ export function SessionsList({ sessions }: { sessions: readonly Session[] }) {
               type="button"
               role="tab"
               aria-selected={selected}
-              onClick={() => setFilter(tab.value)}
+              onClick={() => void setFilter(tab.value)}
               className={cn(
                 "rounded-full border px-3 py-1 text-[12.5px] font-medium transition-colors",
                 selected

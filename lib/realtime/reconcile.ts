@@ -1,5 +1,12 @@
 import type { QueryClient } from "@tanstack/react-query";
-import type { RealtimeEvent, SessionDetail, SessionMessage } from "@/features/sessions/realtime";
+import type { SessionCanvas } from "@/features/sessions/canvas";
+import {
+  CANVAS_EVENT_TYPES,
+  type CanvasEvent,
+  type RealtimeEvent,
+  type SessionDetail,
+  type SessionMessage,
+} from "@/features/sessions/realtime";
 import { queryKeys } from "@/lib/query/keys";
 
 // The single sink (ARCHITECTURE.md §Real-time): every SSE/WS frame — whichever
@@ -39,8 +46,11 @@ function endMessage(transcript: readonly SessionMessage[], messageId: string): S
   );
 }
 
+/** The non-canvas frames — those that settle a session's transcript/detail entry. */
+type DetailEvent = Exclude<RealtimeEvent, CanvasEvent>;
+
 /** Fold one event into the current detail, returning a new detail (immutable). */
-function applyEvent(detail: SessionDetail, event: RealtimeEvent): SessionDetail {
+function applyEvent(detail: SessionDetail, event: DetailEvent): SessionDetail {
   switch (event.type) {
     case "token":
       return {
@@ -62,8 +72,47 @@ function applyEvent(detail: SessionDetail, event: RealtimeEvent): SessionDetail 
   }
 }
 
-/** Write a validated realtime event into the session's cache entry. */
+/** An empty canvas to merge into before the snapshot (if any) has seeded the cache. */
+function seedCanvas(sessionId: string): SessionCanvas {
+  return { sessionId, plan: [], run: [], diff: "", trace: [] };
+}
+
+const CANVAS_TYPES = new Set<string>(CANVAS_EVENT_TYPES);
+
+function isCanvasEvent(event: RealtimeEvent): event is CanvasEvent {
+  return CANVAS_TYPES.has(event.type);
+}
+
+/** Fold one canvas frame into the current canvas, returning a new canvas (immutable). */
+function applyCanvasEvent(canvas: SessionCanvas, event: CanvasEvent): SessionCanvas {
+  switch (event.type) {
+    case "canvas":
+      return event.canvas;
+    case "plan":
+      return { ...canvas, plan: event.plan };
+    case "run_log":
+      return { ...canvas, run: [...canvas.run, event.line] };
+    case "trace":
+      return { ...canvas, trace: [...canvas.trace, event.span] };
+    default: {
+      const _exhaustive: never = event;
+      return _exhaustive;
+    }
+  }
+}
+
+/**
+ * Write a validated realtime event into the session's cache. Canvas-family frames land
+ * in the canvas entry; everything else in the transcript/detail entry — two live targets,
+ * one sink, so no component ever learns a socket exists.
+ */
 export function reconcile(queryClient: QueryClient, event: RealtimeEvent): void {
+  if (isCanvasEvent(event)) {
+    queryClient.setQueryData<SessionCanvas>(queryKeys.sessionCanvas(event.sessionId), (previous) =>
+      applyCanvasEvent(previous ?? seedCanvas(event.sessionId), event),
+    );
+    return;
+  }
   queryClient.setQueryData<SessionDetail>(queryKeys.session(event.sessionId), (previous) =>
     applyEvent(previous ?? seedDetail(event.sessionId), event),
   );
