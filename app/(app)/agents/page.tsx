@@ -1,10 +1,9 @@
-import { RoutePlaceholder } from "@/components/route-placeholder";
+import { AgentsList } from "@/features/agents/components/agents-list";
+import { createServerCaller } from "@/server/trpc/caller";
 
-export default function AgentsPage() {
-  return (
-    <RoutePlaceholder
-      title="Agents"
-      description="Agent roster with edit/bash/network permissions. (Phase 3)"
-    />
-  );
+// Agents roster. Routing glue only: the RSC reads the agent list from the BFF (tRPC) and
+// hands it to the client roster component.
+export default async function AgentsPage() {
+  const api = await createServerCaller();
+  return <AgentsList agents={await api.agents.list()} />;
 }
