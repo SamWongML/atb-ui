@@ -1,10 +1,9 @@
-import { RoutePlaceholder } from "@/components/route-placeholder";
+import { SkillsList } from "@/features/skills/components/skills-list";
+import { createServerCaller } from "@/server/trpc/caller";
 
-export default function SkillsPage() {
-  return (
-    <RoutePlaceholder
-      title="Skills"
-      description="Reusable, versioned capability packages. (Phase 3)"
-    />
-  );
+// Skills. Routing glue only: the RSC reads the skill list from the BFF (tRPC) and hands it
+// to the client list component.
+export default async function SkillsPage() {
+  const api = await createServerCaller();
+  return <SkillsList skills={await api.skills.list()} />;
 }

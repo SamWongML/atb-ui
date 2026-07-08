@@ -1,0 +1,113 @@
+import type { McpServer } from "@/features/mcp/schema";
+import { createStore } from "./store";
+
+// The BFF's MCP-registry data source — an in-memory seed (verbatim from the design mockup)
+// behind the shared CRUD store. When the real MCP registry comes online this becomes a
+// downstream client and the router above is unchanged.
+function seedServers(): McpServer[] {
+  return [
+    {
+      id: "github",
+      name: "github",
+      transport: "http",
+      status: "healthy",
+      latency: "86ms",
+      toolCount: 8,
+      auth: "GitHub App · installation token",
+      description: "Repos, PRs, reviews and checks for the meridian org.",
+      tools: [
+        "search_code",
+        "read_file",
+        "create_branch",
+        "commit_files",
+        "open_pr",
+        "review_pr",
+        "merge_pr",
+        "list_checks",
+      ],
+      secrets: ["GITHUB_APP_ID", "GITHUB_INSTALLATION_ID", "GITHUB_PRIVATE_KEY"],
+      usedBy: ["Recon", "Builder", "Synthesizer", "Orchestrator"],
+    },
+    {
+      id: "linear",
+      name: "linear",
+      transport: "http",
+      status: "healthy",
+      latency: "112ms",
+      toolCount: 6,
+      auth: "API key",
+      description: "Issues and projects — links each run back to its ticket.",
+      tools: [
+        "list_issues",
+        "create_issue",
+        "update_issue",
+        "add_comment",
+        "search_issues",
+        "assign",
+      ],
+      secrets: ["LINEAR_API_KEY"],
+      usedBy: ["Orchestrator", "Synthesizer"],
+    },
+    {
+      id: "postgres-ro",
+      name: "postgres-ro",
+      transport: "stdio",
+      status: "healthy",
+      latency: "9ms",
+      toolCount: 4,
+      auth: "DSN · read-only role",
+      description: "Read-only analytics replica for schema and data checks.",
+      tools: ["query", "list_tables", "describe_table", "explain"],
+      secrets: ["PG_DSN"],
+      usedBy: ["Builder"],
+    },
+    {
+      id: "slack",
+      name: "slack",
+      transport: "http",
+      status: "degraded",
+      latency: "640ms",
+      toolCount: 6,
+      auth: "Bot token",
+      description: "Notifications and approvals — currently degraded, retrying with backoff.",
+      tools: [
+        "post_message",
+        "upload_file",
+        "list_channels",
+        "open_dm",
+        "add_reaction",
+        "schedule_message",
+      ],
+      secrets: ["SLACK_BOT_TOKEN", "SLACK_SIGNING_SECRET"],
+      usedBy: ["Orchestrator"],
+    },
+    {
+      id: "sentry",
+      name: "sentry",
+      transport: "http",
+      status: "healthy",
+      latency: "134ms",
+      toolCount: 5,
+      auth: "Auth token",
+      description: "Error monitoring — feeds real events to the review agents.",
+      tools: ["list_issues", "get_event", "resolve_issue", "assign", "latest_release"],
+      secrets: ["SENTRY_DSN", "SENTRY_TOKEN"],
+      usedBy: ["Security Reviewer"],
+    },
+    {
+      id: "s3-artifacts",
+      name: "s3-artifacts",
+      transport: "stdio",
+      status: "healthy",
+      latency: "41ms",
+      toolCount: 3,
+      auth: "IAM access key",
+      description: "Build artifacts and run-log bucket for the cluster.",
+      tools: ["put_object", "get_object", "presign_url"],
+      secrets: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"],
+      usedBy: ["Builder", "Synthesizer"],
+    },
+  ];
+}
+
+export const mcpStore = createStore(seedServers);

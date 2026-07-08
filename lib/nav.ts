@@ -8,6 +8,7 @@ import {
   type LucideIcon,
   Radio,
   Server,
+  Users,
   Workflow,
 } from "lucide-react";
 import type { Route } from "next";
@@ -43,6 +44,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     items: [
       { label: "Workflows", href: "/workflows", icon: Workflow },
       { label: "Agents", href: "/agents", icon: Bot },
+      { label: "Squads", href: "/squads", icon: Users },
       { label: "Skills", href: "/skills", icon: Blocks },
       { label: "MCP servers", href: "/mcp", icon: Server },
     ],
