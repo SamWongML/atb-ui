@@ -49,12 +49,12 @@ function applyEvent(detail: SessionDetail, event: RealtimeEvent): SessionDetail 
       };
     case "message_end":
       return { ...detail, transcript: endMessage(detail.transcript, event.messageId) };
+    // A status change and a control echo both settle the session's lifecycle status.
     case "status":
+    case "control":
       return { ...detail, status: event.status };
     case "step":
       return { ...detail, steps: event.steps };
-    case "control":
-      return { ...detail, status: event.status };
     default: {
       const _exhaustive: never = event;
       return _exhaustive;

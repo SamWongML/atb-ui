@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { sessionStatusSchema, sessionStepsSchema } from "./schema";
+import { type SessionStatus, sessionStatusSchema, sessionStepsSchema } from "./schema";
 
 // Realtime frame contracts (ARCHITECTURE.md §Real-time). One schema per frame,
 // shared by the client SSE/WS readers and the BFF proxy — validated at every process
@@ -31,6 +31,17 @@ export type SessionDetail = z.infer<typeof sessionDetailSchema>;
 export const CONTROL_ACTIONS = ["approve", "interrupt"] as const;
 export const controlActionSchema = z.enum(CONTROL_ACTIONS);
 export type ControlAction = z.infer<typeof controlActionSchema>;
+
+/**
+ * The lifecycle status each control action drives. One rule, shared by both sides of
+ * the round-trip: the client applies it as its optimistic guess (lib/realtime/ws.ts)
+ * and the BFF applies it as the authoritative outcome (server/realtime/gateway.ts),
+ * so the two can never diverge.
+ */
+export const CONTROL_STATUS: Record<ControlAction, SessionStatus> = {
+  approve: "active",
+  interrupt: "needs_you",
+};
 
 /** Agent output token(s) to append to a (possibly new) transcript message. */
 export const tokenEventSchema = z.object({
