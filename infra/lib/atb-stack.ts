@@ -3,6 +3,7 @@ import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as ecr from "aws-cdk-lib/aws-ecr";
 import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as ecsPatterns from "aws-cdk-lib/aws-ecs-patterns";
+import * as elasticache from "aws-cdk-lib/aws-elasticache";
 import * as logs from "aws-cdk-lib/aws-logs";
 import type { Construct } from "constructs";
 
@@ -40,6 +41,27 @@ export class AtbConsoleStack extends Stack {
       removalPolicy: RemovalPolicy.DESTROY,
     });
 
+    // Redis (ElastiCache) pub/sub backplane — mandatory for multi-task WebSocket
+    // fan-out (ARCHITECTURE.md §"The critical production detail"). Every task
+    // publishes/subscribes to per-session channels so any task can serve any client.
+    const redisSecurityGroup = new ec2.SecurityGroup(this, "RedisSg", {
+      vpc,
+      description: "ATB Redis backplane",
+      allowAllOutbound: false,
+    });
+    const redisSubnets = new elasticache.CfnSubnetGroup(this, "RedisSubnets", {
+      description: "ATB Redis backplane subnets",
+      subnetIds: vpc.privateSubnets.map((subnet) => subnet.subnetId),
+    });
+    const redis = new elasticache.CfnCacheCluster(this, "Redis", {
+      engine: "redis",
+      cacheNodeType: "cache.t4g.micro",
+      numCacheNodes: 1,
+      vpcSecurityGroupIds: [redisSecurityGroup.securityGroupId],
+      cacheSubnetGroupName: redisSubnets.ref,
+    });
+    const redisUrl = `redis://${redis.attrRedisEndpointAddress}:${redis.attrRedisEndpointPort}`;
+
     const service = new ecsPatterns.ApplicationLoadBalancedFargateService(this, "Service", {
       cluster,
       cpu: 512,
@@ -59,6 +81,7 @@ export class AtbConsoleStack extends Stack {
           NODE_ENV: "production",
           PORT: "3000",
           HOSTNAME: "0.0.0.0",
+          REDIS_URL: redisUrl,
         },
         logDriver: ecs.LogDrivers.awsLogs({ streamPrefix: "atb-console", logGroup }),
       },
@@ -73,6 +96,9 @@ export class AtbConsoleStack extends Stack {
       interval: Duration.seconds(30),
       timeout: Duration.seconds(5),
     });
+
+    // Let the Fargate tasks reach the Redis backplane on 6379.
+    service.service.connections.allowTo(redisSecurityGroup, ec2.Port.tcp(6379), "Redis backplane");
 
     const scaling = service.service.autoScaleTaskCount({ minCapacity: 2, maxCapacity: 6 });
     scaling.scaleOnCpuUtilization("CpuScaling", { targetUtilizationPercent: 60 });

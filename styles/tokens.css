@@ -49,6 +49,7 @@
   --nav-active: rgba(255, 255, 255, 0.06);
   --nav-hover: rgba(255, 255, 255, 0.032);
   --track: rgba(255, 255, 255, 0.07);
+  --scrim: rgba(0, 0, 0, 0.4); /* modal/palette backdrop — dark in both themes */
   --shadow: 0 18px 50px -18px rgba(0, 0, 0, 0.7);
   --sans: "Geist", system-ui, sans-serif;
   --mono: "Geist Mono", ui-monospace, monospace;

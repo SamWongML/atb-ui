@@ -53,6 +53,7 @@
 
   --color-chip: var(--chip);
   --color-chip-bd: var(--chip-bd);
+  --color-scrim: var(--scrim);
 
   /* shadcn/Radix focus + form primitives, mapped to ATB tokens. */
   --color-ring: var(--accent);

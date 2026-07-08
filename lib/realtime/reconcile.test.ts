@@ -1,0 +1,91 @@
+import { QueryClient } from "@tanstack/react-query";
+import { describe, expect, it } from "vitest";
+import type { SessionDetail } from "@/features/sessions/realtime";
+import { queryKeys } from "@/lib/query/keys";
+import { reconcile } from "./reconcile";
+
+// Seam: the single sink writing stream events into the Query cache (ARCHITECTURE.md
+// §Real-time). Observe the cache via getQueryData — never reconcile's internals. This
+// is the one function every SSE/WS frame flows through.
+
+function read(client: QueryClient, id = "sess_01"): SessionDetail | undefined {
+  return client.getQueryData<SessionDetail>(queryKeys.session(id));
+}
+
+function token(text: string, messageId = "m1") {
+  return {
+    type: "token" as const,
+    sessionId: "sess_01",
+    messageId,
+    agent: "Builder",
+    text,
+  };
+}
+
+describe("reconcile", () => {
+  it("appends streamed tokens into one transcript message", () => {
+    const client = new QueryClient();
+    reconcile(client, token("hel"));
+    reconcile(client, token("lo"));
+
+    const detail = read(client);
+    expect(detail?.transcript).toHaveLength(1);
+    expect(detail?.transcript[0]?.text).toBe("hello");
+    expect(detail?.transcript[0]?.pending).toBe(true);
+  });
+
+  it("keeps distinct messages for distinct messageIds", () => {
+    const client = new QueryClient();
+    reconcile(client, token("a", "m1"));
+    reconcile(client, token("b", "m2"));
+    expect(read(client)?.transcript).toHaveLength(2);
+  });
+
+  it("drops the live cursor when a message ends", () => {
+    const client = new QueryClient();
+    reconcile(client, token("done"));
+    reconcile(client, { type: "message_end", sessionId: "sess_01", messageId: "m1" });
+    expect(read(client)?.transcript[0]?.pending).toBe(false);
+  });
+
+  it("updates the session status from a status frame", () => {
+    const client = new QueryClient();
+    reconcile(client, { type: "status", sessionId: "sess_01", status: "review" });
+    expect(read(client)?.status).toBe("review");
+  });
+
+  it("advances step progress", () => {
+    const client = new QueryClient();
+    reconcile(client, { type: "step", sessionId: "sess_01", steps: { completed: 3, total: 5 } });
+    expect(read(client)?.steps).toEqual({ completed: 3, total: 5 });
+  });
+
+  it("applies the authoritative control echo to the status", () => {
+    const client = new QueryClient();
+    reconcile(client, {
+      type: "control",
+      sessionId: "sess_01",
+      action: "interrupt",
+      status: "needs_you",
+    });
+    expect(read(client)?.status).toBe("needs_you");
+  });
+
+  it("merges into an existing snapshot without clobbering it", () => {
+    const client = new QueryClient();
+    const snapshot: SessionDetail = {
+      id: "sess_01",
+      title: "Refactor auth module",
+      status: "active",
+      steps: { completed: 1, total: 5 },
+      transcript: [],
+      updatedAt: "2026-07-07T10:12:00.000Z",
+    };
+    client.setQueryData(queryKeys.session("sess_01"), snapshot);
+    reconcile(client, token("hi"));
+
+    const detail = read(client);
+    expect(detail?.title).toBe("Refactor auth module");
+    expect(detail?.transcript[0]?.text).toBe("hi");
+  });
+});
