@@ -24,11 +24,23 @@ describe("mockTokenStream", () => {
 });
 
 describe("streamMockTokens", () => {
-  it("yields the same frames as the burst, one at a time (paced streaming)", async () => {
-    const streamed: RealtimeEvent[] = [];
-    for await (const frame of streamMockTokens("sess_01", 0)) {
-      streamed.push(frame);
+  // The behavior the burst version lacked: frames are spaced out over time rather than
+  // emitted all at once. setTimeout never fires early, so N frames spaced by `interval`
+  // cannot fully drain in less than (N-1) intervals of real time — a hard lower bound
+  // that fails the moment pacing is removed, without a flaky upper bound.
+  it("spaces frames over time instead of emitting them in one burst", async () => {
+    const interval = 10;
+    const start = Date.now();
+
+    const frames: RealtimeEvent[] = [];
+    for await (const frame of streamMockTokens("sess_01", interval)) {
+      frames.push(frame);
     }
-    expect(streamed).toEqual(mockTokenStream("sess_01"));
+    const elapsed = Date.now() - start;
+
+    expect(frames).toHaveLength(10); // 7 token chunks + message_end + step + status
+    expect(frames[0]).toMatchObject({ type: "token", text: "Analyzing" });
+    expect(frames.at(-1)).toMatchObject({ type: "status", status: "review" });
+    expect(elapsed).toBeGreaterThanOrEqual(9 * interval - 5);
   });
 });
