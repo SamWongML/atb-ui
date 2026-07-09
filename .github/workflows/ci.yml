@@ -38,6 +38,9 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Performance budget (initial route JS < 200KB)
+        run: pnpm perf:budget
+
   infra:
     name: Infra (CDK typecheck)
     runs-on: ubuntu-latest
@@ -60,7 +63,9 @@ jobs:
         working-directory: infra
         run: pnpm typecheck
 
-  # Skeleton deploy: build image → push to ECR → roll the ECS service.
+  # Skeleton deploy: build image → push to ECR → cdk deploy provisions the stack.
+  # The ECS service uses a CodeDeploy blue-green controller, so the app rollout (new
+  # image → traffic shift) is driven by CodeDeploy, not by this cdk deploy alone.
   # Opt-in: set repo variable DEPLOY_ENABLED=true and the AWS_* secrets/vars.
   deploy-staging:
     name: Deploy (staging ECS)

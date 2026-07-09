@@ -3,6 +3,7 @@
 import { skipToken, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import type { SessionDetail } from "@/features/sessions/realtime";
+import { reporter, reportStreamError } from "@/lib/observability/reporter";
 import { queryKeys } from "@/lib/query/keys";
 import { reconcile } from "@/lib/realtime/reconcile";
 import { openSessionStream } from "@/lib/realtime/sse";
@@ -20,6 +21,7 @@ export function useSessionStream(sessionId: string) {
       sessionId,
       signal: controller.signal,
       onEvent: (event) => reconcile(queryClient, event),
+      onError: (error) => reportStreamError(reporter, error),
     });
     return () => controller.abort();
   }, [sessionId, queryClient]);

@@ -3,6 +3,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef } from "react";
 import type { ControlAction } from "@/features/sessions/realtime";
+import { reporter, reportStreamError } from "@/lib/observability/reporter";
 import { reconcile } from "@/lib/realtime/reconcile";
 import { type ControlSocket, openControlSocket, sendControl } from "@/lib/realtime/ws";
 
@@ -19,6 +20,7 @@ export function useControlSocket(sessionId: string): (action: ControlAction) => 
     const socket = openControlSocket({
       sessionId,
       onEvent: (event) => reconcile(queryClient, event),
+      onError: (error) => reportStreamError(reporter, error),
     });
     socketRef.current = socket;
     return () => {
@@ -30,6 +32,7 @@ export function useControlSocket(sessionId: string): (action: ControlAction) => 
   return useCallback(
     (action: ControlAction) => {
       if (!socketRef.current) return;
+      reporter.captureEvent("session_steered", { sessionId, action });
       sendControl(socketRef.current, queryClient, { type: "control", sessionId, action });
     },
     [sessionId, queryClient],

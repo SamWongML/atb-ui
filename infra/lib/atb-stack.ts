@@ -1,9 +1,11 @@
 import { CfnOutput, Duration, RemovalPolicy, Stack, type StackProps } from "aws-cdk-lib";
+import * as codedeploy from "aws-cdk-lib/aws-codedeploy";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as ecr from "aws-cdk-lib/aws-ecr";
 import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as ecsPatterns from "aws-cdk-lib/aws-ecs-patterns";
 import * as elasticache from "aws-cdk-lib/aws-elasticache";
+import * as elbv2 from "aws-cdk-lib/aws-elasticloadbalancingv2";
 import * as logs from "aws-cdk-lib/aws-logs";
 import type { Construct } from "constructs";
 
@@ -70,10 +72,12 @@ export class AtbConsoleStack extends Stack {
       // Redis backplane (Phase 1) is mandatory for cross-task fan-out.
       desiredCount: 2,
       publicLoadBalancer: true,
-      // Zero-downtime rolling deploys with fast failure rollback.
+      // Keep every task in service while CodeDeploy stands up the green fleet.
       minHealthyPercent: 100,
-      maxHealthyPercent: 200,
-      circuitBreaker: { rollback: true },
+      // Blue-green cutover via CodeDeploy (ROADMAP Phase 5; ARCHITECTURE.md §Ship path).
+      // CodeDeploy shifts traffic between two target groups and rolls back on alarm, so
+      // the ECS-native circuit breaker does not apply here.
+      deploymentController: { type: ecs.DeploymentControllerType.CODE_DEPLOY },
       taskImageOptions: {
         image: ecs.ContainerImage.fromEcrRepository(repository, props.imageTag),
         containerPort: 3000,
@@ -90,11 +94,43 @@ export class AtbConsoleStack extends Stack {
     // Keep long-lived SSE/WS connections alive and drain fast on deploy.
     service.loadBalancer.setAttribute("idle_timeout.timeout_seconds", "300");
     service.targetGroup.setAttribute("deregistration_delay.timeout_seconds", "10");
-    service.targetGroup.configureHealthCheck({
+
+    const healthCheck: elbv2.HealthCheck = {
       path: "/",
       healthyHttpCodes: "200-399",
       interval: Duration.seconds(30),
       timeout: Duration.seconds(5),
+    };
+    service.targetGroup.configureHealthCheck(healthCheck);
+
+    // Blue-green cutover: CodeDeploy shifts prod traffic from the blue target group
+    // (created by the pattern, on the prod :80 listener) to a green one, validated on a
+    // separate test listener first, then rolls back on alarm (ARCHITECTURE.md §Ship path).
+    const greenTargetGroup = new elbv2.ApplicationTargetGroup(this, "GreenTargetGroup", {
+      vpc,
+      port: 3000,
+      protocol: elbv2.ApplicationProtocol.HTTP,
+      targetType: elbv2.TargetType.IP,
+      deregistrationDelay: Duration.seconds(10),
+      healthCheck,
+    });
+    const testListener = service.loadBalancer.addListener("TestListener", {
+      port: 9000,
+      protocol: elbv2.ApplicationProtocol.HTTP,
+      defaultTargetGroups: [greenTargetGroup],
+    });
+
+    new codedeploy.EcsDeploymentGroup(this, "BlueGreen", {
+      service: service.service,
+      blueGreenDeploymentConfig: {
+        blueTargetGroup: service.targetGroup,
+        greenTargetGroup,
+        listener: service.listener,
+        testListener,
+        terminationWaitTime: Duration.minutes(5),
+      },
+      deploymentConfig: codedeploy.EcsDeploymentConfig.CANARY_10PERCENT_5MINUTES,
+      autoRollback: { failedDeployment: true, stoppedDeployment: true },
     });
 
     // Let the Fargate tasks reach the Redis backplane on 6379.
