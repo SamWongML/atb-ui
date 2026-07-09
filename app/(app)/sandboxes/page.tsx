@@ -1,10 +1,9 @@
-import { RoutePlaceholder } from "@/components/route-placeholder";
+import { SandboxesList } from "@/features/sandboxes/components/sandboxes-list";
+import { createServerCaller } from "@/server/trpc/caller";
 
-export default function SandboxesPage() {
-  return (
-    <RoutePlaceholder
-      title="Sandboxes"
-      description="Compute environments agents run inside. (Phase 4)"
-    />
-  );
+// Sandboxes. Routing glue only: the RSC reads the environments from the BFF (tRPC) and hands
+// them to the client list component.
+export default async function SandboxesPage() {
+  const api = await createServerCaller();
+  return <SandboxesList sandboxes={await api.sandboxes.list()} />;
 }

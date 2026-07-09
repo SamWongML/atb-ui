@@ -1,10 +1,9 @@
-import { RoutePlaceholder } from "@/components/route-placeholder";
+import { OverviewHome } from "@/features/overview/components/overview-home";
+import { createServerCaller } from "@/server/trpc/caller";
 
-export default function OverviewPage() {
-  return (
-    <RoutePlaceholder
-      title="Overview"
-      description="At-a-glance health — activity, failures, and model mix. (Phase 4)"
-    />
-  );
+// Overview. Routing glue only: the RSC reads the composed home summary from the BFF (tRPC)
+// and hands it to the home component.
+export default async function OverviewPage() {
+  const api = await createServerCaller();
+  return <OverviewHome summary={await api.overview.summary()} />;
 }
