@@ -1,10 +1,9 @@
-import { RoutePlaceholder } from "@/components/route-placeholder";
+import { RunsList } from "@/features/runs/components/runs-list";
+import { createServerCaller } from "@/server/trpc/caller";
 
-export default function RunsPage() {
-  return (
-    <RoutePlaceholder
-      title="Runs"
-      description="Execution history and failures with root causes. (Phase 4)"
-    />
-  );
+// Runs. Routing glue only: the RSC reads the run history from the BFF (tRPC) and hands it
+// to the client list component.
+export default async function RunsPage() {
+  const api = await createServerCaller();
+  return <RunsList runs={await api.runs.list()} />;
 }

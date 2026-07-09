@@ -11,19 +11,32 @@ Element.prototype.setPointerCapture ??= () => {};
 Element.prototype.releasePointerCapture ??= () => {};
 Element.prototype.scrollIntoView ??= () => {};
 
-// cmdk and TanStack Virtual observe their scroll containers; jsdom has no
-// ResizeObserver and never lays anything out (every rect is 0×0). Report a fixed
-// viewport on observe so a virtualized list computes a non-empty range in tests —
-// the layout analogue of the pointer-capture shims above.
+// cmdk, TanStack Virtual, and Recharts observe their scroll/chart containers; jsdom has no
+// ResizeObserver and never lays anything out (every rect is 0×0). Report a fixed viewport on
+// observe so a virtualized list computes a non-empty range and a responsive chart gets a
+// size in tests — the layout analogue of the pointer-capture shims above. The entry carries
+// both the *BoxSize forms (TanStack Virtual) and contentRect (Recharts).
 if (!globalThis.ResizeObserver) {
+  const WIDTH = 800;
+  const HEIGHT = 900;
   globalThis.ResizeObserver = class {
     #cb: ResizeObserverCallback;
     constructor(cb: ResizeObserverCallback) {
       this.#cb = cb;
     }
     observe(target: Element) {
-      const box = { inlineSize: 800, blockSize: 900 } as ResizeObserverSize;
-      const entry = { target, borderBoxSize: [box], contentBoxSize: [box] };
+      const box = { inlineSize: WIDTH, blockSize: HEIGHT } as ResizeObserverSize;
+      const contentRect = {
+        width: WIDTH,
+        height: HEIGHT,
+        top: 0,
+        left: 0,
+        right: WIDTH,
+        bottom: HEIGHT,
+        x: 0,
+        y: 0,
+      };
+      const entry = { target, contentRect, borderBoxSize: [box], contentBoxSize: [box] };
       this.#cb([entry as unknown as ResizeObserverEntry], this);
     }
     unobserve() {}
