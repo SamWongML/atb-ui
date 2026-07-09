@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { RUN_STATUS_META } from "../presentation";
 import type { Run } from "../schema";
 
-// The run detail view (README.md §Runs): a run's provenance, timing, cost, step progress and,
+// The run detail view: a run's provenance, timing, cost, step progress and,
 // when it failed, its root cause surfaced in red. Read-only; runs are history. Props from the
 // RSC page.
 

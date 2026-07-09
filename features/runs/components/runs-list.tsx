@@ -7,7 +7,7 @@ import { filterRuns, RUN_FILTER_VALUES, RUN_FILTERS } from "../filter";
 import { RUN_STATUS_META } from "../presentation";
 import type { Run } from "../schema";
 
-// The runs surface (README.md §Runs): a flat, newest-first execution history narrowed by a
+// The runs surface: a flat, newest-first execution history narrowed by a
 // status filter tab. The active filter lives in the URL (nuqs) so a filtered view is
 // shareable and reload-correct. Data arrives as a prop; the RSC page reads it via tRPC.
 

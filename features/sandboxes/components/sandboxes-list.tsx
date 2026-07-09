@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { SANDBOX_STATUS_META } from "../presentation";
 import type { Sandbox } from "../schema";
 
-// The sandboxes list (README.md §Sandboxes): a grid of compute environments, each card
+// The sandboxes list: a grid of compute environments, each card
 // surfacing its status inline (running pulses), the base image, provisioned compute, and how
 // many agents are inside. Fed by the RSC page through tRPC. Read-only — the compute plane
 // owns lifecycle.

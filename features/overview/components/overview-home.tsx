@@ -8,7 +8,7 @@ import type {
   OverviewSummary,
 } from "../schema";
 
-// The overview home (README.md §Overview): the surface that ties everything together —
+// The overview home: the surface that ties everything together —
 // headline stats, the activity feed, recent failures with their root cause, and the model
 // mix. Read-only; props from the RSC page, which composes them through the BFF.
 

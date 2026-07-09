@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { SANDBOX_STATUS_META } from "../presentation";
 import type { Sandbox } from "../schema";
 
-// The sandbox detail view (README.md §Sandboxes): a compute environment's status, image,
+// The sandbox detail view: a compute environment's status, image,
 // provisioned resources, region, uptime, bound repo, and the agents running inside it.
 // Read-only; the compute plane owns lifecycle. Props from the RSC page.
 

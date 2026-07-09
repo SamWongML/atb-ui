@@ -1,15 +1,17 @@
 import type { ReactNode } from "react";
-import { avgCostPerRun, colorAt, formatUsd, withShare } from "../presentation";
+import { formatUsd } from "@/lib/format";
+import { withShare } from "@/lib/share";
+import { avgCostPerRun, colorAt } from "../presentation";
 import type { Analytics } from "../schema";
 import { CostChart } from "./cost-chart";
 import { ModelMixChart } from "./model-mix-chart";
 
-// The analytics dashboard (README.md §Analytics): rolled-up spend and the model mix behind it.
+// The analytics dashboard: rolled-up spend and the model mix behind it.
 // KPI tiles and the model legend carry the numbers as text (the accessible surface); the
 // Recharts area + donut are decorative enrichment beside them. Props from the RSC page.
 
 export function AnalyticsDashboard({ data }: { data: Analytics }) {
-  const models = withShare(data.modelMix);
+  const models = withShare(data.modelMix, (model) => model.runs);
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
       <header>

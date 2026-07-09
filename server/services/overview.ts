@@ -1,5 +1,6 @@
-import { formatUsd, withShare } from "@/features/analytics/presentation";
 import type { OverviewSummary } from "@/features/overview/schema";
+import { formatUsd } from "@/lib/format";
+import { withShare } from "@/lib/share";
 import { analyticsSnapshot } from "./analytics";
 import { mcpStore } from "./mcp";
 import { runsStore } from "./runs";
@@ -41,7 +42,7 @@ export function overviewSummary(): OverviewSummary {
         rootCause: run.rootCause ?? "",
         href: `/runs/${run.id}`,
       })),
-    modelMix: withShare(analytics.modelMix).map((model) => ({
+    modelMix: withShare(analytics.modelMix, (model) => model.runs).map((model) => ({
       model: model.model,
       share: model.share,
     })),
