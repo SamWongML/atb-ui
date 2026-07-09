@@ -38,6 +38,9 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Performance budget (initial route JS < 200KB)
+        run: pnpm perf:budget
+
   infra:
     name: Infra (CDK typecheck)
     runs-on: ubuntu-latest

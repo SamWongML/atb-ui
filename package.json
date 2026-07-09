@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "perf:budget": "node scripts/check-perf-budget.mts",
     "prepare": "lefthook install"
   },
   "dependencies": {
