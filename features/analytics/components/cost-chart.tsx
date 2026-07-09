@@ -30,6 +30,7 @@ export function CostChart({ data }: { data: readonly CostPoint[] }) {
             stroke="var(--accent)"
             strokeWidth={2}
             fill="url(#atb-cost-fill)"
+            isAnimationActive={false}
           />
         </AreaChart>
       </ResponsiveContainer>

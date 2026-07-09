@@ -20,6 +20,7 @@ export function ModelMixChart({ data }: { data: readonly ModelUsage[] }) {
             outerRadius="100%"
             paddingAngle={2}
             stroke="none"
+            isAnimationActive={false}
           >
             {data.map((slice, i) => (
               <Cell key={slice.model} fill={colorAt(i)} />
