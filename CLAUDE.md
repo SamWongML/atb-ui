@@ -53,3 +53,17 @@ need it — much of `server/`, `lib/realtime/`, `lib/query/`, `lib/trpc/` isn't 
   fns, and components via RTL roles/text. Never assert on internal structure.
 - Every test runs against MSW with `onUnhandledRequest: "error"` — register a handler in
   `test/handlers.ts` or the test fails loudly.
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues (`github.com/SamWongML/atb-ui`) via the `gh` CLI; external PRs are not a triage surface. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default label vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`) — no repo-specific overrides. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
