@@ -1,7 +1,15 @@
 import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Agent } from "../schema";
 import { AgentsList } from "./agents-list";
+
+// The roster renders the shared <ListRail>, which reads the route (breadcrumb + back);
+// mock the next/navigation boundary like the shell test does so the list renders
+// standalone (no PageChromeProvider → <PageHeader> renders the rail inline).
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/agents",
+  useRouter: () => ({ push: vi.fn(), prefetch: vi.fn(), replace: vi.fn(), back: vi.fn() }),
+}));
 
 // Seam: the agents roster rendered from server data (CONTEXT.md §Components) — asserted
 // through roles/text, never structure. The RSC page passes `agents`; this component lays

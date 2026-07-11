@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 import { SidebarNav } from "./sidebar-nav";
 
 // Seam (CONTEXT.md §Components): render via RTL, assert on roles/text — the public
@@ -47,6 +48,13 @@ describe("SidebarNav", () => {
   it("offers the New session CTA", () => {
     render(<SidebarNav pathname="/overview" />);
     expect(screen.getByRole("button", { name: /new session/i })).toBeInTheDocument();
+  });
+
+  it("opens the command menu from the search button", async () => {
+    const onOpenCommandMenu = vi.fn();
+    render(<SidebarNav pathname="/overview" onOpenCommandMenu={onOpenCommandMenu} />);
+    await userEvent.click(screen.getByRole("button", { name: /search — open the command menu/i }));
+    expect(onOpenCommandMenu).toHaveBeenCalledOnce();
   });
 
   it("shows the live session count beside Sessions", () => {

@@ -1,17 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { ListHeader } from "@/components/list-header";
+import { ListRail } from "@/components/list-rail";
+import { PageHeader } from "@/components/page-chrome";
 import { Surface } from "@/components/surface";
-import { leadingNumber, type SortDir, type SortField, sortItems } from "@/lib/list-query";
+import { leadingNumber, type SortField } from "@/lib/list-query";
+import { useListQuery } from "@/lib/use-list-query";
 import { cn } from "@/lib/utils";
 import { SQUAD_STATUS_META } from "../presentation";
 import { SQUAD_STATUSES, type Squad } from "../schema";
 
-// The squads list (README.md §Squads): a grid of agent teams, each card showing its lead +
-// members, mission, phase and progress. The shared <ListHeader> drives search + status
-// filter + sort; data arrives as a prop from the RSC.
+// The squads list (README.md §Squads, ADR 0001): a grid of agent teams, each card
+// showing its lead + members, mission, phase and progress. Chrome is the shared
+// <ListRail> (search · status tabs · sort · New) in the shell header; state is the
+// shared useListQuery. Data arrives as a prop from the RSC.
 
 const SORT_FIELDS: SortField<Squad>[] = [
   { key: "name", label: "Name", value: (squad) => squad.name.toLowerCase() },
@@ -20,66 +22,61 @@ const SORT_FIELDS: SortField<Squad>[] = [
   { key: "runs", label: "Runs", value: (squad) => leadingNumber(squad.runs) },
 ];
 
-const STATUS_FILTERS: { value: string; label: string }[] = [
+const STATUS_FILTERS = [
   { value: "all", label: "All" },
   ...SQUAD_STATUSES.map((status) => ({ value: status, label: SQUAD_STATUS_META[status].label })),
 ];
 
 export function SquadsList({ squads }: { squads: readonly Squad[] }) {
-  const [query, setQuery] = useState("");
-  const [status, setStatus] = useState("all");
-  const [sortKey, setSortKey] = useState("status");
-  const [dir, setDir] = useState<SortDir>("asc");
-
-  const visible = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const filtered = squads.filter((squad) => {
-      if (status !== "all" && squad.status !== status) return false;
-      if (!q) return true;
-      return (
-        squad.name.toLowerCase().includes(q) ||
-        squad.mission.toLowerCase().includes(q) ||
-        squad.description.toLowerCase().includes(q)
-      );
-    });
-    return sortItems(filtered, SORT_FIELDS, sortKey, dir);
-  }, [squads, query, status, sortKey, dir]);
+  const query = useListQuery({
+    items: squads,
+    sortFields: SORT_FIELDS,
+    statuses: SQUAD_STATUSES,
+    statusOf: (squad) => squad.status,
+    matches: (squad, q) =>
+      squad.name.toLowerCase().includes(q) ||
+      squad.mission.toLowerCase().includes(q) ||
+      squad.description.toLowerCase().includes(q),
+  });
 
   return (
-    <Surface className="gap-5">
-      <ListHeader
-        title="Squads"
-        subtitle="Agent teams with a lead and a mission."
-        count={squads.length}
-        newButton={{ href: "/squads/new", label: "New squad" }}
-        search={{ value: query, onChange: setQuery, placeholder: "Search squads…" }}
-        filter={{
-          options: STATUS_FILTERS,
-          value: status,
-          onChange: setStatus,
-          ariaLabel: "Filter by status",
-        }}
-        sort={{
-          fields: SORT_FIELDS,
-          value: sortKey,
-          onChange: setSortKey,
-          dir,
-          onToggleDir: () => setDir((current) => (current === "asc" ? "desc" : "asc")),
-        }}
-      />
+    <>
+      <PageHeader>
+        <ListRail
+          count={squads.length}
+          filter={{
+            options: STATUS_FILTERS,
+            value: query.status,
+            onChange: query.setStatus,
+            counts: query.counts,
+            ariaLabel: "Filter by status",
+          }}
+          sort={{
+            fields: SORT_FIELDS,
+            value: query.sortKey,
+            onChange: query.setSortKey,
+            dir: query.dir,
+            onToggleDir: query.toggleDir,
+          }}
+          search={{ value: query.query, onChange: query.setQuery, placeholder: "Search squads…" }}
+          newButton={{ href: "/squads/new", label: "New squad" }}
+        />
+      </PageHeader>
 
-      {squads.length === 0 ? (
-        <EmptyState message="No squads yet. Create one to get started." />
-      ) : visible.length === 0 ? (
-        <EmptyState message="No squads match this view." />
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {visible.map((squad) => (
-            <SquadCard key={squad.id} squad={squad} />
-          ))}
-        </div>
-      )}
-    </Surface>
+      <Surface className="gap-4">
+        {squads.length === 0 ? (
+          <EmptyState message="No squads yet. Create one to get started." />
+        ) : query.visible.length === 0 ? (
+          <EmptyState message="No squads match this view." />
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {query.visible.map((squad) => (
+              <SquadCard key={squad.id} squad={squad} />
+            ))}
+          </div>
+        )}
+      </Surface>
+    </>
   );
 }
 

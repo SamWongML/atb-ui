@@ -1,17 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { ListHeader } from "@/components/list-header";
+import { ListRail } from "@/components/list-rail";
+import { PageHeader } from "@/components/page-chrome";
 import { Surface } from "@/components/surface";
-import { leadingNumber, type SortDir, type SortField, sortItems } from "@/lib/list-query";
+import { leadingNumber, type SortField } from "@/lib/list-query";
+import { useListQuery } from "@/lib/use-list-query";
 import { cn } from "@/lib/utils";
 import { SKILL_CATEGORY_META, SKILL_STATUS_META } from "../presentation";
 import { SKILL_STATUSES, type Skill } from "../schema";
 
-// The skills list (README.md §Skills): a grid of versioned capability packages, each card
-// showing its category, version and lifecycle status. The shared <ListHeader> drives search
-// + status filter + sort; data arrives as a prop from the RSC.
+// The skills list (README.md §Skills, ADR 0001): a grid of versioned capability
+// packages, each card showing its category, version and lifecycle status. Chrome is the
+// shared <ListRail> (search · status tabs · sort · New) in the shell header; state is
+// the shared useListQuery. Data arrives as a prop from the RSC.
 
 const SORT_FIELDS: SortField<Skill>[] = [
   { key: "name", label: "Name", value: (skill) => skill.name.toLowerCase() },
@@ -20,66 +22,61 @@ const SORT_FIELDS: SortField<Skill>[] = [
   { key: "invocations", label: "Runs", value: (skill) => leadingNumber(skill.invocations) },
 ];
 
-const STATUS_FILTERS: { value: string; label: string }[] = [
+const STATUS_FILTERS = [
   { value: "all", label: "All" },
   ...SKILL_STATUSES.map((status) => ({ value: status, label: SKILL_STATUS_META[status].label })),
 ];
 
 export function SkillsList({ skills }: { skills: readonly Skill[] }) {
-  const [query, setQuery] = useState("");
-  const [status, setStatus] = useState("all");
-  const [sortKey, setSortKey] = useState("status");
-  const [dir, setDir] = useState<SortDir>("asc");
-
-  const visible = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const filtered = skills.filter((skill) => {
-      if (status !== "all" && skill.status !== status) return false;
-      if (!q) return true;
-      return (
-        skill.name.toLowerCase().includes(q) ||
-        skill.description.toLowerCase().includes(q) ||
-        skill.summary.toLowerCase().includes(q)
-      );
-    });
-    return sortItems(filtered, SORT_FIELDS, sortKey, dir);
-  }, [skills, query, status, sortKey, dir]);
+  const query = useListQuery({
+    items: skills,
+    sortFields: SORT_FIELDS,
+    statuses: SKILL_STATUSES,
+    statusOf: (skill) => skill.status,
+    matches: (skill, q) =>
+      skill.name.toLowerCase().includes(q) ||
+      skill.description.toLowerCase().includes(q) ||
+      skill.summary.toLowerCase().includes(q),
+  });
 
   return (
-    <Surface className="gap-5">
-      <ListHeader
-        title="Skills"
-        subtitle="Reusable capability packages, versioned."
-        count={skills.length}
-        newButton={{ href: "/skills/new", label: "New skill" }}
-        search={{ value: query, onChange: setQuery, placeholder: "Search skills…" }}
-        filter={{
-          options: STATUS_FILTERS,
-          value: status,
-          onChange: setStatus,
-          ariaLabel: "Filter by status",
-        }}
-        sort={{
-          fields: SORT_FIELDS,
-          value: sortKey,
-          onChange: setSortKey,
-          dir,
-          onToggleDir: () => setDir((current) => (current === "asc" ? "desc" : "asc")),
-        }}
-      />
+    <>
+      <PageHeader>
+        <ListRail
+          count={skills.length}
+          filter={{
+            options: STATUS_FILTERS,
+            value: query.status,
+            onChange: query.setStatus,
+            counts: query.counts,
+            ariaLabel: "Filter by status",
+          }}
+          sort={{
+            fields: SORT_FIELDS,
+            value: query.sortKey,
+            onChange: query.setSortKey,
+            dir: query.dir,
+            onToggleDir: query.toggleDir,
+          }}
+          search={{ value: query.query, onChange: query.setQuery, placeholder: "Search skills…" }}
+          newButton={{ href: "/skills/new", label: "New skill" }}
+        />
+      </PageHeader>
 
-      {skills.length === 0 ? (
-        <EmptyState message="No skills yet. Create one to get started." />
-      ) : visible.length === 0 ? (
-        <EmptyState message="No skills match this view." />
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {visible.map((skill) => (
-            <SkillCard key={skill.id} skill={skill} />
-          ))}
-        </div>
-      )}
-    </Surface>
+      <Surface className="gap-4">
+        {skills.length === 0 ? (
+          <EmptyState message="No skills yet. Create one to get started." />
+        ) : query.visible.length === 0 ? (
+          <EmptyState message="No skills match this view." />
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {query.visible.map((skill) => (
+              <SkillCard key={skill.id} skill={skill} />
+            ))}
+          </div>
+        )}
+      </Surface>
+    </>
   );
 }
 

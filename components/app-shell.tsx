@@ -1,9 +1,10 @@
 "use client";
 
-import { LogOut, Search, TerminalSquare } from "lucide-react";
+import { LogOut, TerminalSquare } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { type ReactNode, useState } from "react";
 import { BreadcrumbNav } from "@/components/breadcrumb-nav";
+import { PageChromeProvider } from "@/components/page-chrome";
 import { SidebarNav } from "@/components/sidebar-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -71,29 +72,31 @@ export function AppShell({
           onSelectWorkspace={setWorkspaceId}
           onSelectEnvironment={setEnvironmentId}
         />
-        <SidebarNav pathname={pathname} sessionCount={sessionCount} onNewSession={runNewSession} />
+        <SidebarNav
+          pathname={pathname}
+          sessionCount={sessionCount}
+          onNewSession={runNewSession}
+          onOpenCommandMenu={() => setPaletteOpen(true)}
+        />
         <div className="mt-auto">
           <AccountMenu user={user} onOpenCommandMenu={() => setPaletteOpen(true)} />
         </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-[53px] flex-shrink-0 items-center justify-between gap-4 border-b border-border px-5">
-          <BreadcrumbNav pathname={pathname} entity={entity} />
-          <button
-            type="button"
-            onClick={() => setPaletteOpen(true)}
-            className="flex min-w-[186px] items-center gap-2 rounded-lg border border-border bg-panel px-2.5 py-1.5 text-[12.5px] font-medium text-text-3 transition-colors hover:border-border-2 hover:text-text-2"
-          >
-            <Search className="size-3.5" aria-hidden />
-            Search or run a command
-            <kbd className="ml-auto rounded border border-border px-1.5 font-mono text-[10.5px] text-text-3">
-              ⌘K
-            </kbd>
-          </button>
-        </header>
-
-        <main className="scroll-surface flex-1 overflow-y-auto">{children}</main>
+        {/* The header is a slot (ADR 0001): list screens fill it with their <ListRail>
+            via <PageHeader>; every other route falls back to the route breadcrumb. One
+            fixed-height bar app-wide, so the fill/fallback swap never shifts layout. */}
+        <PageChromeProvider
+          className="flex min-h-11 flex-shrink-0 flex-col justify-center border-b border-border"
+          fallback={
+            <div className="flex h-11 items-center px-5">
+              <BreadcrumbNav pathname={pathname} entity={entity} />
+            </div>
+          }
+        >
+          <main className="scroll-surface flex-1 overflow-y-auto">{children}</main>
+        </PageChromeProvider>
       </div>
 
       <CommandMenu actions={actions} />

@@ -8,14 +8,19 @@ import { cn } from "@/lib/utils";
 // own it once that layout is built). The shell's <main> owns scrolling; Surface owns
 // width and padding. `fill` bounds the column to the pane height (with a symmetric
 // bottom pad) for surfaces that scroll a region internally instead of flowing in <main>.
+// `fullWidth` lifts the cap entirely (a first-class prop, NOT a `max-w-none` className:
+// tailwind-merge doesn't know the custom `max-w-surface` utility, so class overrides
+// silently lose the specificity race) — the display option list screens expose.
 export function Surface({
   narrow = false,
   fill = false,
+  fullWidth = false,
   className,
   children,
 }: {
   narrow?: boolean;
   fill?: boolean;
+  fullWidth?: boolean;
   className?: string;
   children: ReactNode;
 }) {
@@ -23,7 +28,7 @@ export function Surface({
     <div
       className={cn(
         "mx-auto flex w-full flex-col px-surface-x pt-surface-t",
-        narrow ? "max-w-surface-narrow" : "max-w-surface",
+        fullWidth ? "max-w-none" : narrow ? "max-w-surface-narrow" : "max-w-surface",
         fill ? "h-full pb-surface-t" : "pb-surface-b",
         className,
       )}

@@ -75,3 +75,17 @@ export function activeNavItem(pathname: string): NavItem | undefined {
     (a, b) => b.href.length - a.href.length,
   )[0];
 }
+
+/**
+ * The active nav item plus the group it belongs to — the location a list-screen rail
+ * shows as `Group / Section` (e.g. `Build / Agents`). Single source of truth so the
+ * rail's location label never drifts from the sidebar.
+ */
+export function activeNavLocation(
+  pathname: string,
+): { group: NavGroup; item: NavItem } | undefined {
+  const item = activeNavItem(pathname);
+  if (!item) return undefined;
+  const group = NAV_GROUPS.find((candidate) => candidate.items.includes(item));
+  return group ? { group, item } : undefined;
+}

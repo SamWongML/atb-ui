@@ -30,6 +30,14 @@ describe("Surface", () => {
     expect(column.classList.contains("max-w-surface")).toBe(false);
   });
 
+  it("lifts the width cap entirely when fullWidth is set", () => {
+    render(<Surface fullWidth>full-width column</Surface>);
+    const column = screen.getByText("full-width column");
+    expect(column.classList.contains("max-w-none")).toBe(true);
+    expect(column.classList.contains("max-w-surface")).toBe(false);
+    expect(column.classList.contains("max-w-surface-narrow")).toBe(false);
+  });
+
   it("bounds fill surfaces to the pane height for internally scrolling content", () => {
     render(<Surface fill>fill column</Surface>);
     const column = screen.getByText("fill column");

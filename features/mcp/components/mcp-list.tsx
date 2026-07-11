@@ -1,17 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { ListHeader } from "@/components/list-header";
+import { ListRail } from "@/components/list-rail";
+import { PageHeader } from "@/components/page-chrome";
 import { Surface } from "@/components/surface";
-import { leadingNumber, type SortDir, type SortField, sortItems } from "@/lib/list-query";
+import { leadingNumber, type SortField } from "@/lib/list-query";
+import { useListQuery } from "@/lib/use-list-query";
 import { cn } from "@/lib/utils";
 import { MCP_STATUS_META } from "../presentation";
 import { MCP_STATUSES, type McpServer } from "../schema";
 
-// The MCP servers list (README.md §MCP servers): a grid of connected tool servers, each card
-// surfacing its health state inline (degraded flagged in amber, pulsing). The shared
-// <ListHeader> drives search + health filter + sort; data arrives as a prop from the RSC.
+// The MCP servers list (README.md §MCP servers, ADR 0001): a grid of connected tool
+// servers, each card surfacing its health state inline (degraded flagged in amber,
+// pulsing). Chrome is the shared <ListRail> (search · health tabs · sort · Connect) in
+// the shell header; state is the shared useListQuery. Data is a prop from the RSC.
 
 const SORT_FIELDS: SortField<McpServer>[] = [
   { key: "name", label: "Name", value: (server) => server.name.toLowerCase() },
@@ -20,62 +22,59 @@ const SORT_FIELDS: SortField<McpServer>[] = [
   { key: "latency", label: "Latency", value: (server) => leadingNumber(server.latency) },
 ];
 
-const STATUS_FILTERS: { value: string; label: string }[] = [
+const STATUS_FILTERS = [
   { value: "all", label: "All" },
   ...MCP_STATUSES.map((status) => ({ value: status, label: MCP_STATUS_META[status].label })),
 ];
 
 export function McpList({ servers }: { servers: readonly McpServer[] }) {
-  const [query, setQuery] = useState("");
-  const [status, setStatus] = useState("all");
-  const [sortKey, setSortKey] = useState("status");
-  const [dir, setDir] = useState<SortDir>("asc");
-
-  const visible = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const filtered = servers.filter((server) => {
-      if (status !== "all" && server.status !== status) return false;
-      if (!q) return true;
-      return server.name.toLowerCase().includes(q) || server.description.toLowerCase().includes(q);
-    });
-    return sortItems(filtered, SORT_FIELDS, sortKey, dir);
-  }, [servers, query, status, sortKey, dir]);
+  const query = useListQuery({
+    items: servers,
+    sortFields: SORT_FIELDS,
+    statuses: MCP_STATUSES,
+    statusOf: (server) => server.status,
+    matches: (server, q) =>
+      server.name.toLowerCase().includes(q) || server.description.toLowerCase().includes(q),
+  });
 
   return (
-    <Surface className="gap-5">
-      <ListHeader
-        title="MCP servers"
-        subtitle="Connected tool servers, health-checked continuously."
-        count={servers.length}
-        newButton={{ href: "/mcp/new", label: "Connect server" }}
-        search={{ value: query, onChange: setQuery, placeholder: "Search servers…" }}
-        filter={{
-          options: STATUS_FILTERS,
-          value: status,
-          onChange: setStatus,
-          ariaLabel: "Filter by health",
-        }}
-        sort={{
-          fields: SORT_FIELDS,
-          value: sortKey,
-          onChange: setSortKey,
-          dir,
-          onToggleDir: () => setDir((current) => (current === "asc" ? "desc" : "asc")),
-        }}
-      />
+    <>
+      <PageHeader>
+        <ListRail
+          count={servers.length}
+          filter={{
+            options: STATUS_FILTERS,
+            value: query.status,
+            onChange: query.setStatus,
+            counts: query.counts,
+            ariaLabel: "Filter by health",
+          }}
+          sort={{
+            fields: SORT_FIELDS,
+            value: query.sortKey,
+            onChange: query.setSortKey,
+            dir: query.dir,
+            onToggleDir: query.toggleDir,
+          }}
+          search={{ value: query.query, onChange: query.setQuery, placeholder: "Search servers…" }}
+          newButton={{ href: "/mcp/new", label: "Connect server" }}
+        />
+      </PageHeader>
 
-      {servers.length === 0 ? (
-        <EmptyState message="No MCP servers connected yet." />
-      ) : visible.length === 0 ? (
-        <EmptyState message="No MCP servers match this view." />
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {visible.map((server) => (
-            <ServerCard key={server.id} server={server} />
-          ))}
-        </div>
-      )}
-    </Surface>
+      <Surface className="gap-4">
+        {servers.length === 0 ? (
+          <EmptyState message="No MCP servers connected yet." />
+        ) : query.visible.length === 0 ? (
+          <EmptyState message="No MCP servers match this view." />
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {query.visible.map((server) => (
+              <ServerCard key={server.id} server={server} />
+            ))}
+          </div>
+        )}
+      </Surface>
+    </>
   );
 }
 

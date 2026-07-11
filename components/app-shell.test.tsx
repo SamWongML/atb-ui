@@ -59,11 +59,11 @@ describe("AppShell", () => {
     expect(screen.getByRole("link", { name: /sessions/i })).toHaveAttribute("aria-current", "page");
   });
 
-  it("opens the command palette from the header search", async () => {
+  it("opens the command palette from the sidebar search button", async () => {
     const user = userEvent.setup();
     render(<AppShell>content</AppShell>);
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /search or run a command/i }));
+    await user.click(screen.getByRole("button", { name: /search — open the command menu/i }));
     expect(await screen.findByRole("combobox")).toBeInTheDocument();
   });
 

@@ -1,17 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { ListHeader } from "@/components/list-header";
+import { ListRail } from "@/components/list-rail";
+import { PageHeader } from "@/components/page-chrome";
 import { Surface } from "@/components/surface";
-import { leadingNumber, type SortDir, type SortField, sortItems } from "@/lib/list-query";
+import { leadingNumber, type SortField } from "@/lib/list-query";
+import { useListQuery } from "@/lib/use-list-query";
 import { cn } from "@/lib/utils";
 import { WORKFLOW_STATUS_META, WORKFLOW_TRIGGER_META } from "../presentation";
 import { WORKFLOW_STATUSES, type Workflow } from "../schema";
 
-// The workflows list (README.md §Workflows): a grid of multi-agent pipelines, each card
-// showing its trigger, lifecycle status, step count and run tally. The shared <ListHeader>
-// drives search + status filter + sort; data arrives as a prop from the RSC.
+// The workflows list (README.md §Workflows, ADR 0001): a grid of multi-agent pipelines,
+// each card showing its trigger, lifecycle status, step count and run tally. Chrome is
+// the shared <ListRail> (search · status tabs · sort · New) in the shell header; state
+// is the shared useListQuery. Data arrives as a prop from the RSC.
 
 const SORT_FIELDS: SortField<Workflow>[] = [
   { key: "name", label: "Name", value: (workflow) => workflow.name.toLowerCase() },
@@ -24,7 +26,7 @@ const SORT_FIELDS: SortField<Workflow>[] = [
   { key: "runs", label: "Runs", value: (workflow) => leadingNumber(workflow.runs) },
 ];
 
-const STATUS_FILTERS: { value: string; label: string }[] = [
+const STATUS_FILTERS = [
   { value: "all", label: "All" },
   ...WORKFLOW_STATUSES.map((status) => ({
     value: status,
@@ -33,58 +35,57 @@ const STATUS_FILTERS: { value: string; label: string }[] = [
 ];
 
 export function WorkflowsList({ workflows }: { workflows: readonly Workflow[] }) {
-  const [query, setQuery] = useState("");
-  const [status, setStatus] = useState("all");
-  const [sortKey, setSortKey] = useState("status");
-  const [dir, setDir] = useState<SortDir>("asc");
-
-  const visible = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const filtered = workflows.filter((workflow) => {
-      if (status !== "all" && workflow.status !== status) return false;
-      if (!q) return true;
-      return (
-        workflow.name.toLowerCase().includes(q) || workflow.description.toLowerCase().includes(q)
-      );
-    });
-    return sortItems(filtered, SORT_FIELDS, sortKey, dir);
-  }, [workflows, query, status, sortKey, dir]);
+  const query = useListQuery({
+    items: workflows,
+    sortFields: SORT_FIELDS,
+    statuses: WORKFLOW_STATUSES,
+    statusOf: (workflow) => workflow.status,
+    matches: (workflow, q) =>
+      workflow.name.toLowerCase().includes(q) || workflow.description.toLowerCase().includes(q),
+  });
 
   return (
-    <Surface className="gap-5">
-      <ListHeader
-        title="Workflows"
-        subtitle="Multi-agent pipelines."
-        count={workflows.length}
-        newButton={{ href: "/workflows/new", label: "New workflow" }}
-        search={{ value: query, onChange: setQuery, placeholder: "Search workflows…" }}
-        filter={{
-          options: STATUS_FILTERS,
-          value: status,
-          onChange: setStatus,
-          ariaLabel: "Filter by status",
-        }}
-        sort={{
-          fields: SORT_FIELDS,
-          value: sortKey,
-          onChange: setSortKey,
-          dir,
-          onToggleDir: () => setDir((current) => (current === "asc" ? "desc" : "asc")),
-        }}
-      />
+    <>
+      <PageHeader>
+        <ListRail
+          count={workflows.length}
+          filter={{
+            options: STATUS_FILTERS,
+            value: query.status,
+            onChange: query.setStatus,
+            counts: query.counts,
+            ariaLabel: "Filter by status",
+          }}
+          sort={{
+            fields: SORT_FIELDS,
+            value: query.sortKey,
+            onChange: query.setSortKey,
+            dir: query.dir,
+            onToggleDir: query.toggleDir,
+          }}
+          search={{
+            value: query.query,
+            onChange: query.setQuery,
+            placeholder: "Search workflows…",
+          }}
+          newButton={{ href: "/workflows/new", label: "New workflow" }}
+        />
+      </PageHeader>
 
-      {workflows.length === 0 ? (
-        <EmptyState message="No workflows yet. Create one to get started." />
-      ) : visible.length === 0 ? (
-        <EmptyState message="No workflows match this view." />
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {visible.map((workflow) => (
-            <WorkflowCard key={workflow.id} workflow={workflow} />
-          ))}
-        </div>
-      )}
-    </Surface>
+      <Surface className="gap-4">
+        {workflows.length === 0 ? (
+          <EmptyState message="No workflows yet. Create one to get started." />
+        ) : query.visible.length === 0 ? (
+          <EmptyState message="No workflows match this view." />
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {query.visible.map((workflow) => (
+              <WorkflowCard key={workflow.id} workflow={workflow} />
+            ))}
+          </div>
+        )}
+      </Surface>
+    </>
   );
 }
 

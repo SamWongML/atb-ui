@@ -1,7 +1,14 @@
 import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { McpServer } from "../schema";
 import { McpList } from "./mcp-list";
+
+// The list renders the shared <ListRail>, which reads the route; mock the
+// next/navigation boundary so the list renders standalone.
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/mcp",
+  useRouter: () => ({ push: vi.fn(), prefetch: vi.fn(), replace: vi.fn(), back: vi.fn() }),
+}));
 
 // Seam: the MCP servers list rendered from server data (CONTEXT.md §Components) — the
 // distinctive behavior is surfacing health (healthy/degraded) inline. Roles/text only.

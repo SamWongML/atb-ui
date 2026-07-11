@@ -1,7 +1,14 @@
 import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Skill } from "../schema";
 import { SkillsList } from "./skills-list";
+
+// The list renders the shared <ListRail>, which reads the route; mock the
+// next/navigation boundary so the list renders standalone.
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/skills",
+  useRouter: () => ({ push: vi.fn(), prefetch: vi.fn(), replace: vi.fn(), back: vi.fn() }),
+}));
 
 // Seam: the skills list rendered from server data (CONTEXT.md §Components) — versioned
 // capability packages with a lifecycle status. Roles/text only.

@@ -2,19 +2,28 @@
 
 import { Plus } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
 import { Card, CardFooter } from "@/components/card";
 import { CardGrid } from "@/components/card-grid";
-import { ListHeader } from "@/components/list-header";
+import {
+  type DisplayProperty,
+  type ListDisplayConfig,
+  type ListDisplayState,
+  useListDisplay,
+} from "@/components/list-display";
+import { ListRail } from "@/components/list-rail";
+import { PageHeader } from "@/components/page-chrome";
 import { Surface } from "@/components/surface";
-import { leadingNumber, type SortDir, type SortField, sortItems } from "@/lib/list-query";
+import { leadingNumber, type SortField } from "@/lib/list-query";
+import { useListQuery } from "@/lib/use-list-query";
 import { cn } from "@/lib/utils";
 import { AGENT_STATUS_META, avatarTint, PERMISSION_META } from "../presentation";
 import { AGENT_STATUSES, type Agent, type AgentPermissions, type AgentStatus } from "../schema";
 
-// The agents roster (README.md §Agents): a grid of cards surfacing each agent's identity,
-// capabilities (skills/MCPs), permission posture and 30-day usage. The shared <ListHeader>
-// (command bar) drives search + status filter + sort; data arrives as a prop from the RSC.
+// The agents roster (README.md §Agents, ADR 0001): the roster's identity cards, driven
+// by the shared list system — <ListRail> in the shell header (search · status tabs ·
+// sort · filter · display · New) via <PageHeader>, the centralized useListQuery/
+// useListDisplay state, and a grid/list that honours the Display popover's layout,
+// density and visible-property choices. Data arrives as a prop from the RSC.
 
 const SORT_FIELDS: SortField<Agent>[] = [
   { key: "name", label: "Name", value: (agent) => agent.name.toLowerCase() },
@@ -24,91 +33,130 @@ const SORT_FIELDS: SortField<Agent>[] = [
   { key: "cost", label: "Cost", value: (agent) => leadingNumber(agent.usage.cost) },
 ];
 
-const STATUS_FILTERS: { value: string; label: string }[] = [
+const STATUS_FILTERS = [
   { value: "all", label: "All" },
   ...AGENT_STATUSES.map((status) => ({ value: status, label: AGENT_STATUS_META[status].label })),
 ];
 
-export function AgentsList({ agents }: { agents: readonly Agent[] }) {
-  const [query, setQuery] = useState("");
-  const [status, setStatus] = useState("all");
-  const [sortKey, setSortKey] = useState("status");
-  const [dir, setDir] = useState<SortDir>("asc");
+const DISPLAY_PROPERTIES: readonly DisplayProperty[] = [
+  { key: "description", label: "Description" },
+  { key: "capabilities", label: "Capabilities" },
+  { key: "usage", label: "Usage" },
+  { key: "permissions", label: "Permissions" },
+];
 
-  const visible = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const filtered = agents.filter((agent) => {
-      if (status !== "all" && agent.status !== status) return false;
-      if (!q) return true;
-      return (
-        agent.name.toLowerCase().includes(q) ||
-        agent.role.toLowerCase().includes(q) ||
-        agent.description.toLowerCase().includes(q) ||
-        agent.skills.some((skill) => skill.toLowerCase().includes(q)) ||
-        agent.mcps.some((mcp) => mcp.toLowerCase().includes(q))
-      );
-    });
-    return sortItems(filtered, SORT_FIELDS, sortKey, dir);
-  }, [agents, query, status, sortKey, dir]);
+const DISPLAY_CONFIG: ListDisplayConfig = { properties: DISPLAY_PROPERTIES, groupable: true };
 
+function agentMatches(agent: Agent, query: string): boolean {
   return (
-    <Surface className="gap-5">
-      <ListHeader
-        title="Agents"
-        subtitle="Your reusable team — each equipped with skills, tools and permissions."
-        count={agents.length}
-        newButton={{ href: "/agents/new", label: "New agent" }}
-        search={{ value: query, onChange: setQuery, placeholder: "Search agents, roles, skills…" }}
-        filter={{
-          options: STATUS_FILTERS,
-          value: status,
-          onChange: setStatus,
-          ariaLabel: "Filter by status",
-        }}
-        sort={{
-          fields: SORT_FIELDS,
-          value: sortKey,
-          onChange: setSortKey,
-          dir,
-          onToggleDir: () => setDir((current) => (current === "asc" ? "desc" : "asc")),
-        }}
-      />
-
-      {agents.length === 0 ? (
-        <EmptyState message="No agents yet. Create one to get started." />
-      ) : visible.length === 0 ? (
-        <EmptyState message="No agents match this view." />
-      ) : (
-        <CardGrid>
-          {visible.map((agent) => (
-            <AgentCard key={agent.id} agent={agent} />
-          ))}
-          <Card asChild variant="dashed">
-            <Link href="/agents/new">
-              <Plus className="size-5" aria-hidden />
-              <span className="text-[12.5px] font-medium">Define a new agent</span>
-            </Link>
-          </Card>
-        </CardGrid>
-      )}
-    </Surface>
+    agent.name.toLowerCase().includes(query) ||
+    agent.role.toLowerCase().includes(query) ||
+    agent.description.toLowerCase().includes(query) ||
+    agent.skills.some((skill) => skill.toLowerCase().includes(query)) ||
+    agent.mcps.some((mcp) => mcp.toLowerCase().includes(query))
   );
 }
 
-function AgentCard({ agent }: { agent: Agent }) {
+export function AgentsList({ agents }: { agents: readonly Agent[] }) {
+  const query = useListQuery({
+    items: agents,
+    sortFields: SORT_FIELDS,
+    statuses: AGENT_STATUSES,
+    statusOf: (agent) => agent.status,
+    matches: agentMatches,
+  });
+  const display = useListDisplay(DISPLAY_CONFIG);
+
   return (
-    <Card asChild>
+    <>
+      <PageHeader>
+        <ListRail
+          count={agents.length}
+          filter={{
+            options: STATUS_FILTERS,
+            value: query.status,
+            onChange: query.setStatus,
+            counts: query.counts,
+            ariaLabel: "Filter by status",
+          }}
+          sort={{
+            fields: SORT_FIELDS,
+            value: query.sortKey,
+            onChange: query.setSortKey,
+            dir: query.dir,
+            onToggleDir: query.toggleDir,
+          }}
+          search={{
+            value: query.query,
+            onChange: query.setQuery,
+            placeholder: "Search agents, roles, skills…",
+          }}
+          newButton={{ href: "/agents/new", label: "New agent" }}
+          display={display}
+        />
+      </PageHeader>
+
+      <Surface fullWidth={display.fullWidth} className="gap-3">
+        <p className="px-0.5 font-mono text-[11px] text-text-4">
+          {query.visible.length} of {agents.length} agents · sorted by{" "}
+          {query.activeSortLabel.toLowerCase()} {query.dir === "asc" ? "↑" : "↓"}
+        </p>
+        {display.layout === "grid" ? (
+          <AgentGrid agents={query.visible} total={agents.length} display={display} />
+        ) : (
+          <AgentRosterList agents={query.visible} total={agents.length} display={display} />
+        )}
+      </Surface>
+    </>
+  );
+}
+
+/* ------------------------------------- grid --------------------------------------- */
+
+function AgentGrid({
+  agents,
+  total,
+  display,
+}: {
+  agents: readonly Agent[];
+  total: number;
+  display: ListDisplayState;
+}) {
+  if (total === 0) return <EmptyState message="No agents yet. Create one to get started." />;
+  if (agents.length === 0) return <EmptyState message="No agents match this view." />;
+  const trimmed = display.density === "compact" || Object.values(display.visible).some((on) => !on);
+  const cardClass = trimmed ? "h-auto min-h-[132px]" : undefined;
+  return (
+    <CardGrid>
+      {agents.map((agent) => (
+        <AgentCard key={agent.id} agent={agent} display={display} cardClass={cardClass} />
+      ))}
+      <Card asChild variant="dashed" className={cardClass}>
+        <Link href="/agents/new">
+          <Plus className="size-5" aria-hidden />
+          <span className="text-[12.5px] font-medium">Define a new agent</span>
+        </Link>
+      </Card>
+    </CardGrid>
+  );
+}
+
+function AgentCard({
+  agent,
+  display,
+  cardClass,
+}: {
+  agent: Agent;
+  display: ListDisplayState;
+  cardClass?: string;
+}) {
+  const show = (key: string) => display.visible[key] ?? true;
+  const compact = display.density === "compact";
+  return (
+    <Card asChild className={cardClass}>
       <Link href={`/agents/${agent.id}`}>
         <div className="mb-3 flex items-start gap-3">
-          <span
-            aria-hidden
-            className={cn(
-              "grid size-[34px] shrink-0 place-items-center rounded-[9px] font-mono text-[12px] font-semibold",
-              avatarTint(agent.id),
-            )}
-          >
-            {agent.avatar}
-          </span>
+          <AgentAvatar agent={agent} />
           <div className="min-w-0 flex-1">
             <p className="truncate text-[14.5px] font-semibold text-text">{agent.name}</p>
             <p className="mt-0.5 truncate font-mono text-[11px] text-text-3">
@@ -117,20 +165,161 @@ function AgentCard({ agent }: { agent: Agent }) {
           </div>
           <StatusTag status={agent.status} />
         </div>
-        <p className="mb-3 line-clamp-3 text-[12.5px] leading-relaxed text-text-2">
-          {agent.description}
-        </p>
-        <div className="mb-3">
-          <CapabilityChips agent={agent} max={4} />
-        </div>
-        <CardFooter>
-          <span className="text-text-3">
-            {agent.usage.tasks} · <span className="text-green">{agent.usage.merged}</span>
-          </span>
-          <PermissionPips permissions={agent.permissions} />
-        </CardFooter>
+        {show("description") && (
+          <p
+            className={cn(
+              "mb-3 text-[12.5px] leading-relaxed text-text-2",
+              compact ? "line-clamp-2" : "line-clamp-3",
+            )}
+          >
+            {agent.description}
+          </p>
+        )}
+        {show("capabilities") && (
+          <div className="mb-3">
+            <CapabilityChips agent={agent} max={compact ? 3 : 4} />
+          </div>
+        )}
+        {(show("usage") || show("permissions")) && (
+          <CardFooter>
+            <span className="text-text-3">
+              {show("usage") ? (
+                <>
+                  {agent.usage.tasks} · <span className="text-green">{agent.usage.merged}</span>
+                </>
+              ) : (
+                <span aria-hidden />
+              )}
+            </span>
+            {show("permissions") && <PermissionPips permissions={agent.permissions} />}
+          </CardFooter>
+        )}
       </Link>
     </Card>
+  );
+}
+
+/* ------------------------------------- list --------------------------------------- */
+
+function AgentRosterList({
+  agents,
+  total,
+  display,
+}: {
+  agents: readonly Agent[];
+  total: number;
+  display: ListDisplayState;
+}) {
+  if (total === 0) return <EmptyState message="No agents yet. Create one to get started." />;
+  if (agents.length === 0) return <EmptyState message="No agents match this view." />;
+
+  const groups = display.grouped
+    ? AGENT_STATUSES.map((status) => ({
+        status,
+        agents: agents.filter((agent) => agent.status === status),
+      })).filter((group) => group.agents.length > 0)
+    : [{ status: null as AgentStatus | null, agents: [...agents] }];
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-hair bg-panel">
+      {groups.map((group, index) => (
+        <div key={group.status ?? "all"}>
+          {group.status && (
+            <div
+              className={cn(
+                "flex items-center gap-2 bg-panel-2 px-3.5 py-1.5",
+                index > 0 && "border-t border-hair",
+              )}
+            >
+              <span
+                className={cn(
+                  "size-1.5 rounded-full",
+                  AGENT_STATUS_META[group.status].dotClass,
+                  group.status === "working" && "motion-safe:animate-pulse",
+                )}
+                aria-hidden
+              />
+              <span className="font-mono text-[10.5px] uppercase tracking-[0.1em] text-text-2">
+                {AGENT_STATUS_META[group.status].label}
+              </span>
+              <span className="font-mono text-[10.5px] tabular-nums text-text-4">
+                {group.agents.length}
+              </span>
+            </div>
+          )}
+          {group.agents.map((agent) => (
+            <AgentRow key={agent.id} agent={agent} display={display} />
+          ))}
+        </div>
+      ))}
+      <Link
+        href="/agents/new"
+        className="flex items-center gap-2.5 border-t border-hair px-3.5 py-2.5 text-[12.5px] font-medium text-text-3 transition-colors hover:bg-[var(--nav-hover)] hover:text-text-2"
+      >
+        <Plus className="size-4" aria-hidden />
+        Define a new agent
+      </Link>
+    </div>
+  );
+}
+
+function AgentRow({ agent, display }: { agent: Agent; display: ListDisplayState }) {
+  const show = (key: string) => display.visible[key] ?? true;
+  const compact = display.density === "compact";
+  return (
+    <Link
+      href={`/agents/${agent.id}`}
+      className={cn(
+        "flex items-center gap-3 border-t border-hair px-3.5 transition-colors first:border-t-0 hover:bg-[var(--nav-hover)]",
+        compact ? "h-10" : "h-[52px]",
+      )}
+    >
+      <AgentAvatar agent={agent} size={compact ? "sm" : "md"} />
+      <span className="w-[230px] min-w-0 shrink-0">
+        <span className="flex items-baseline gap-2">
+          <span className="truncate text-[13.5px] font-medium text-text">{agent.name}</span>
+          <span className="truncate font-mono text-[10.5px] text-text-4">{agent.role}</span>
+        </span>
+      </span>
+      {!display.grouped && <StatusTag status={agent.status} />}
+      <span className="min-w-0 flex-1">
+        {show("capabilities") && <CapabilityChips agent={agent} max={3} noWrap />}
+      </span>
+      {show("usage") && (
+        <>
+          <span className="w-[72px] shrink-0 text-right font-mono text-[11px] tabular-nums text-text-3">
+            {agent.usage.tasks.split(" ")[0]} tasks
+          </span>
+          <span className="w-[86px] shrink-0 text-right font-mono text-[11px] tabular-nums text-green">
+            {agent.usage.merged.split(" ")[0]} merged
+          </span>
+          <span className="w-[56px] shrink-0 text-right font-mono text-[11px] tabular-nums text-text-3">
+            {agent.usage.cost}
+          </span>
+        </>
+      )}
+      <span className="w-[40px] shrink-0 text-right font-mono text-[10px] text-text-4">
+        {agent.model.split(" ")[0]}
+      </span>
+      {show("permissions") && <PermissionPips permissions={agent.permissions} />}
+    </Link>
+  );
+}
+
+/* ----------------------------------- fragments ------------------------------------ */
+
+function AgentAvatar({ agent, size = "md" }: { agent: Agent; size?: "sm" | "md" }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "grid shrink-0 place-items-center rounded-[9px] font-mono font-semibold",
+        size === "md" ? "size-[34px] text-[12px]" : "size-6 rounded-md text-[9.5px]",
+        avatarTint(agent.id),
+      )}
+    >
+      {agent.avatar}
+    </span>
   );
 }
 
@@ -161,11 +350,9 @@ const PERMISSION_ORDER = [
   ["network", "N"],
 ] as const;
 
-// The permission matrix as three compact pips (edit / bash / network), tinted
-// allow=green · ask=amber · deny=red (CONTEXT.md) — authorisation at a glance.
 function PermissionPips({ permissions }: { permissions: AgentPermissions }) {
   return (
-    <span className="inline-flex items-center gap-1">
+    <span className="inline-flex shrink-0 items-center gap-1">
       {PERMISSION_ORDER.map(([key, letter]) => {
         const meta = PERMISSION_META[permissions[key]];
         return (
@@ -185,10 +372,7 @@ function PermissionPips({ permissions }: { permissions: AgentPermissions }) {
   );
 }
 
-// Skills (green) + MCP servers (violet) as chips, capped with a +N overflow. Wraps to at
-// most two rows (`max` bounds the count); the fixed `--card-h` is sized to fit that second
-// row, so wrapping never overflows the card (see Card).
-function CapabilityChips({ agent, max }: { agent: Agent; max: number }) {
+function CapabilityChips({ agent, max, noWrap }: { agent: Agent; max: number; noWrap?: boolean }) {
   const items = [
     ...agent.skills.map((label) => ({ kind: "skill" as const, label })),
     ...agent.mcps.map((label) => ({ kind: "mcp" as const, label })),
@@ -199,19 +383,21 @@ function CapabilityChips({ agent, max }: { agent: Agent; max: number }) {
   const shown = items.slice(0, max);
   const overflow = items.length - shown.length;
   return (
-    <span className="flex flex-wrap items-center gap-1.5">
+    <span className={cn("flex items-center gap-1.5", noWrap ? "overflow-hidden" : "flex-wrap")}>
       {shown.map((item) => (
         <span
           key={`${item.kind}:${item.label}`}
           className={cn(
-            "rounded-md px-1.5 py-0.5 font-mono text-[10.5px]",
+            "shrink-0 rounded-md px-1.5 py-0.5 font-mono text-[10.5px]",
             item.kind === "skill" ? "bg-green-bg text-green" : "bg-violet-bg text-violet",
           )}
         >
           {item.label}
         </span>
       ))}
-      {overflow > 0 && <span className="font-mono text-[10.5px] text-text-4">+{overflow}</span>}
+      {overflow > 0 && (
+        <span className="shrink-0 font-mono text-[10.5px] text-text-4">+{overflow}</span>
+      )}
     </span>
   );
 }
