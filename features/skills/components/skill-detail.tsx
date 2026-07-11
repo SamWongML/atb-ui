@@ -1,5 +1,6 @@
 import { Pencil } from "lucide-react";
 import Link from "next/link";
+import { Surface } from "@/components/surface";
 import { cn } from "@/lib/utils";
 import { SKILL_CATEGORY_META, SKILL_STATUS_META } from "../presentation";
 import type { Skill } from "../schema";
@@ -12,7 +13,7 @@ export function SkillDetail({ skill }: { skill: Skill }) {
   const status = SKILL_STATUS_META[skill.status];
   const category = SKILL_CATEGORY_META[skill.category];
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6">
+    <Surface className="gap-6">
       <header className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -99,7 +100,7 @@ export function SkillDetail({ skill }: { skill: Skill }) {
           ))}
         </ul>
       </section>
-    </div>
+    </Surface>
   );
 }
 

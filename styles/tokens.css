@@ -48,12 +48,36 @@
   --chip-bd: rgba(255, 255, 255, 0.09);
   --nav-active: rgba(255, 255, 255, 0.06);
   --nav-hover: rgba(255, 255, 255, 0.032);
-  --track: rgba(255, 255, 255, 0.07);
   --scrim: rgba(0, 0, 0, 0.4); /* modal/palette backdrop — dark in both themes */
+
+  /* Scrollbar — the one centralized native-bar theme (bound in globals.css, applied
+     app-wide). Thumb colours reference theme-aware neutrals, so the bar re-themes with the
+     app from this single definition; the insets implement the "padded thumb" — the visible
+     thumb is `size − 2·inset`, and hover fattens it by shrinking the inset, never by growing
+     the bar, so a hovered thumb never reflows content. */
+  --scrollbar-size: 14px; /* bar hit-area thickness (grab target) */
+  --scrollbar-thumb-inset: 4px; /* transparent padding → 6px visible thumb at rest */
+  --scrollbar-thumb-inset-hover: 2px; /* shrink on hover → 10px thumb, same bar width */
+  --scrollbar-thumb: var(--border-2);
+  --scrollbar-thumb-hover: var(--text-4);
+  --scrollbar-thumb-active: var(--text-3);
   --shadow: 0 18px 50px -18px rgba(0, 0, 0, 0.7);
   --sans: "Geist", system-ui, sans-serif;
   --mono: "Geist Mono", ui-monospace, monospace;
   --serif: "Newsreader", Georgia, serif;
+
+  /* Surface layout — main-pane content columns (design: 1360px cap — 820px for
+     chat/reading/form columns — padding 26px 30px 70px). Theme-invariant. */
+  --surface-max-w: 1360px;
+  --surface-narrow-max-w: 820px;
+  --surface-pad-x: 30px;
+  --surface-pad-t: 26px;
+  --surface-pad-b: 70px;
+
+  /* Cards — list-surface entity cards (agents/mcp/skills/squads/workflows). Theme-invariant. */
+  --card-h: 232px; /* fixed grid-card height — search-invariant, decoupled from row siblings;
+                      sized to fit a 3-line description or a two-row chip set */
+  --card-col-min: 310px; /* auto-fill column floor */
 }
 
 [data-theme="light"] {
@@ -99,7 +123,6 @@
   --chip-bd: rgba(28, 26, 23, 0.1);
   --nav-active: rgba(28, 26, 23, 0.055);
   --nav-hover: rgba(28, 26, 23, 0.03);
-  --track: rgba(28, 26, 23, 0.08);
   /* Elevation: Vercel spec — borders + tonal surfaces first, shadows subtle. */
   --shadow: 0 1px 2px rgba(30, 26, 21, 0.05), 0 12px 28px -14px rgba(30, 26, 21, 0.16);
 }

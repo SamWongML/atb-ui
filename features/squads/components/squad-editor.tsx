@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Surface } from "@/components/surface";
 import { trpc } from "@/lib/trpc/react";
 import { type Squad, type SquadInput, squadToInput } from "../schema";
 import { SquadForm } from "./squad-form";
@@ -30,7 +31,7 @@ export function SquadEditor({ squad }: { squad?: Squad }) {
   };
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-6">
+    <Surface narrow className="gap-6">
       <header className="space-y-1">
         <Link
           href={squad ? `/squads/${squad.id}` : "/squads"}
@@ -48,6 +49,6 @@ export function SquadEditor({ squad }: { squad?: Squad }) {
         submitLabel={editing ? "Save changes" : "Create squad"}
         pending={pending}
       />
-    </div>
+    </Surface>
   );
 }

@@ -151,3 +151,48 @@ describe("design-system token contract", () => {
     expect(present).toEqual([]);
   });
 });
+
+/**
+ * Surface layout contract. The design's main pane (design/ATB Agent Platform.dc.html)
+ * centers every scrolling surface in one column: max-width 1360px — 820px for
+ * chat/reading/form columns — with 26px 30px 70px padding. One token set drives every
+ * screen via <Surface> (components/surface.tsx); ad-hoc width caps are how pages
+ * drifted to half-width columns.
+ */
+describe("surface layout contract", () => {
+  it("defines the surface layout tokens with the design's dimensions", () => {
+    const decls = declMap(tokensCss);
+    expect(decls.get("--surface-max-w")).toBe("1360px");
+    expect(decls.get("--surface-narrow-max-w")).toBe("820px");
+    expect(decls.get("--surface-pad-x")).toBe("30px");
+    expect(decls.get("--surface-pad-t")).toBe("26px");
+    expect(decls.get("--surface-pad-b")).toBe("70px");
+  });
+
+  it("binds the surface tokens into Tailwind's container and spacing namespaces", () => {
+    const decls = themeInlineDecls();
+    expect(decls.get("--container-surface")).toBe("var(--surface-max-w)");
+    expect(decls.get("--container-surface-narrow")).toBe("var(--surface-narrow-max-w)");
+    expect(decls.get("--spacing-surface-x")).toBe("var(--surface-pad-x)");
+    expect(decls.get("--spacing-surface-t")).toBe("var(--surface-pad-t)");
+    expect(decls.get("--spacing-surface-b")).toBe("var(--surface-pad-b)");
+  });
+
+  it("caps main-pane columns with surface tokens, never the fixed width scale", () => {
+    // components/ui primitives (dialogs) and the standalone (auth) card own their
+    // widths; everything else renders inside a <Surface>.
+    const scaleCap = /\bmax-w-(?:xs|sm|md|lg|xl|[2-7]xl)\b/;
+    const offenders = [
+      ...tsxFilesUnder("features"),
+      ...tsxFilesUnder("components"),
+      ...tsxFilesUnder("app"),
+    ].filter(
+      (file) =>
+        !file.startsWith("components/ui/") &&
+        !file.startsWith("app/(auth)/") &&
+        !file.endsWith(".test.tsx") &&
+        scaleCap.test(readRepo(file)),
+    );
+    expect(offenders).toEqual([]);
+  });
+});

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Surface } from "@/components/surface";
 import { cn } from "@/lib/utils";
 import { RUN_STATUS_META } from "../presentation";
 import type { Run } from "../schema";
@@ -10,7 +11,7 @@ import type { Run } from "../schema";
 export function RunDetail({ run }: { run: Run }) {
   const status = RUN_STATUS_META[run.status];
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6">
+    <Surface className="gap-6">
       <header>
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="font-mono text-2xl font-medium tracking-tight text-text">{run.source}</h1>
@@ -45,7 +46,7 @@ export function RunDetail({ run }: { run: Run }) {
           <span className="break-all font-mono text-[12px]">{run.model}</span>
         </Stat>
       </dl>
-    </div>
+    </Surface>
   );
 }
 

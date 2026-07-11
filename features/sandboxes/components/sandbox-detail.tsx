@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Surface } from "@/components/surface";
 import { cn } from "@/lib/utils";
 import { SANDBOX_STATUS_META } from "../presentation";
 import type { Sandbox } from "../schema";
@@ -10,7 +11,7 @@ import type { Sandbox } from "../schema";
 export function SandboxDetail({ sandbox }: { sandbox: Sandbox }) {
   const meta = SANDBOX_STATUS_META[sandbox.status];
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6">
+    <Surface className="gap-6">
       <header>
         <div className="flex flex-wrap items-center gap-2">
           <span
@@ -67,7 +68,7 @@ export function SandboxDetail({ sandbox }: { sandbox: Sandbox }) {
           </div>
         )}
       </section>
-    </div>
+    </Surface>
   );
 }
 

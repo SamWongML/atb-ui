@@ -64,7 +64,7 @@ export function SessionCanvas({
         })}
       </div>
 
-      <div role="tabpanel" className="min-h-0 flex-1 overflow-auto p-4">
+      <div role="tabpanel" className="scroll-surface min-h-0 flex-1 overflow-auto p-4">
         {tab === "plan" && <PlanView plan={canvas.plan} />}
         {tab === "run" && <RunView run={canvas.run} />}
         {tab === "diff" && <DiffView diff={canvas.diff} />}

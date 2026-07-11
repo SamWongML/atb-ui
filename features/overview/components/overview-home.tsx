@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Surface } from "@/components/surface";
 import { cn } from "@/lib/utils";
 import { OVERVIEW_ACTIVITY_META } from "../presentation";
 import type {
@@ -14,7 +15,7 @@ import type {
 
 export function OverviewHome({ summary }: { summary: OverviewSummary }) {
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-6">
+    <Surface className="gap-6">
       <header>
         <h1 className="font-serif text-2xl font-medium tracking-tight text-text">Overview</h1>
         <p className="text-[13px] text-text-3">Everything happening across your workspace.</p>
@@ -77,7 +78,7 @@ export function OverviewHome({ summary }: { summary: OverviewSummary }) {
           </section>
         </div>
       </div>
-    </div>
+    </Surface>
   );
 }
 

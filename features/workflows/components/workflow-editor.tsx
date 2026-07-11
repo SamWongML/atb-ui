@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Surface } from "@/components/surface";
 import { trpc } from "@/lib/trpc/react";
 import { type Workflow, type WorkflowInput, workflowToInput } from "../schema";
 import { WorkflowForm } from "./workflow-form";
@@ -30,7 +31,7 @@ export function WorkflowEditor({ workflow }: { workflow?: Workflow }) {
   };
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-6">
+    <Surface narrow className="gap-6">
       <header className="space-y-1">
         <Link
           href={workflow ? `/workflows/${workflow.id}` : "/workflows"}
@@ -48,6 +49,6 @@ export function WorkflowEditor({ workflow }: { workflow?: Workflow }) {
         submitLabel={editing ? "Save changes" : "Create workflow"}
         pending={pending}
       />
-    </div>
+    </Surface>
   );
 }

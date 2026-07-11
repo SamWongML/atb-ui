@@ -19,7 +19,9 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
       <div className="min-w-0">
         <SessionView sessionId={id} />
       </div>
-      <LazySessionCanvas sessionId={id} initialCanvas={initialCanvas} />
+      <div className="min-h-0 px-surface-x pt-surface-t pb-surface-t lg:pl-0">
+        <LazySessionCanvas sessionId={id} initialCanvas={initialCanvas} />
+      </div>
     </div>
   );
 }

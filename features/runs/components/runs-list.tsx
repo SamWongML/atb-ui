@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
+import { Surface } from "@/components/surface";
 import { cn } from "@/lib/utils";
 import { filterRuns, RUN_FILTER_VALUES, RUN_FILTERS } from "../filter";
 import { RUN_STATUS_META } from "../presentation";
@@ -20,7 +21,7 @@ export function RunsList({ runs }: { runs: readonly Run[] }) {
   const visible = filterRuns([...runs], filter);
 
   return (
-    <div className="mx-auto flex h-full max-w-3xl flex-col gap-5">
+    <Surface className="gap-5">
       <header>
         <h1 className="font-serif text-2xl font-medium tracking-tight text-text">Runs</h1>
         <p className="text-[13px] text-text-3">
@@ -62,7 +63,7 @@ export function RunsList({ runs }: { runs: readonly Run[] }) {
           ))}
         </div>
       )}
-    </div>
+    </Surface>
   );
 }
 

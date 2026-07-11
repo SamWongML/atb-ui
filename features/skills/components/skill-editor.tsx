@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Surface } from "@/components/surface";
 import { trpc } from "@/lib/trpc/react";
 import { type Skill, type SkillInput, skillToInput } from "../schema";
 import { SkillForm } from "./skill-form";
@@ -30,7 +31,7 @@ export function SkillEditor({ skill }: { skill?: Skill }) {
   };
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-6">
+    <Surface narrow className="gap-6">
       <header className="space-y-1">
         <Link
           href={skill ? `/skills/${skill.id}` : "/skills"}
@@ -48,6 +49,6 @@ export function SkillEditor({ skill }: { skill?: Skill }) {
         submitLabel={editing ? "Save changes" : "Create skill"}
         pending={pending}
       />
-    </div>
+    </Surface>
   );
 }

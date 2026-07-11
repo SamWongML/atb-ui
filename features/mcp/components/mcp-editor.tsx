@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Surface } from "@/components/surface";
 import { trpc } from "@/lib/trpc/react";
 import { type McpInput, type McpServer, mcpToInput } from "../schema";
 import { McpForm } from "./mcp-form";
@@ -30,7 +31,7 @@ export function McpEditor({ server }: { server?: McpServer }) {
   };
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-6">
+    <Surface narrow className="gap-6">
       <header className="space-y-1">
         <Link
           href={server ? `/mcp/${server.id}` : "/mcp"}
@@ -48,6 +49,6 @@ export function McpEditor({ server }: { server?: McpServer }) {
         submitLabel={editing ? "Save changes" : "Connect server"}
         pending={pending}
       />
-    </div>
+    </Surface>
   );
 }

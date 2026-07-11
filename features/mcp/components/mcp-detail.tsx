@@ -1,6 +1,7 @@
 import { Pencil } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { Surface } from "@/components/surface";
 import { cn } from "@/lib/utils";
 import { MCP_STATUS_META } from "../presentation";
 import type { McpServer } from "../schema";
@@ -12,7 +13,7 @@ import type { McpServer } from "../schema";
 export function McpDetail({ server }: { server: McpServer }) {
   const health = MCP_STATUS_META[server.status];
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6">
+    <Surface className="gap-6">
       <header className="flex items-start gap-3">
         <span
           role="img"
@@ -58,7 +59,7 @@ export function McpDetail({ server }: { server: McpServer }) {
       <ChipSection label="Tools" items={server.tools} empty="No tools exposed" />
       <ChipSection label="Secrets" items={server.secrets} empty="No secrets required" />
       <ChipSection label="Used by" items={server.usedBy} empty="Not used by any agent" />
-    </div>
+    </Surface>
   );
 }
 

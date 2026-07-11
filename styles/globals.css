@@ -89,6 +89,14 @@
   --radius-md: var(--radius);
   --radius-lg: calc(var(--radius) + 3px);
   --radius-xl: calc(var(--radius) + 8px);
+
+  /* Surface layout — the main-pane content column (<Surface>): width caps +
+     padding, sourced from tokens.css. */
+  --container-surface: var(--surface-max-w);
+  --container-surface-narrow: var(--surface-narrow-max-w);
+  --spacing-surface-x: var(--surface-pad-x);
+  --spacing-surface-t: var(--surface-pad-t);
+  --spacing-surface-b: var(--surface-pad-b);
 }
 
 /*
@@ -125,6 +133,46 @@
   ::selection {
     background: var(--accent-bg);
   }
+}
+
+/*
+ * The one centralized scrollbar (tokens in tokens.css: --scrollbar-*). Styling the WebKit
+ * pseudo-elements opts every bar into a classic, tokenized native bar app-wide. The thumb
+ * is "padded": a transparent border insets the visible thumb inside a wider grab-area, and
+ * hover shrinks that inset so the thumb fattens without ever widening the bar (no reflow).
+ * Scroll surfaces add `.scroll-surface` to reserve the track (scrollbar-gutter: stable) so
+ * the bar's appear/disappear never shifts layout.
+ */
+@layer base {
+  ::-webkit-scrollbar {
+    width: var(--scrollbar-size);
+    height: var(--scrollbar-size);
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb);
+    background-clip: padding-box;
+    border: var(--scrollbar-thumb-inset) solid transparent;
+    border-radius: 9999px;
+    min-height: 40px;
+  }
+  :hover::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb-hover);
+  }
+  ::-webkit-scrollbar-thumb:hover,
+  ::-webkit-scrollbar-thumb:active {
+    background-color: var(--scrollbar-thumb-active);
+    border-width: var(--scrollbar-thumb-inset-hover);
+  }
+  ::-webkit-scrollbar-button {
+    display: none;
+  }
+}
+
+.scroll-surface {
+  scrollbar-gutter: stable;
 }
 
 /* Running indicators pulse (README.md §Interactions). */

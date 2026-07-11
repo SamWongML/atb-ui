@@ -1,6 +1,7 @@
 import { Pencil } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { Surface } from "@/components/surface";
 import { cn } from "@/lib/utils";
 import { RUN_OUTCOME_META, SQUAD_STATUS_META } from "../presentation";
 import type { Squad } from "../schema";
@@ -12,7 +13,7 @@ import type { Squad } from "../schema";
 export function SquadDetail({ squad }: { squad: Squad }) {
   const status = SQUAD_STATUS_META[squad.status];
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6">
+    <Surface className="gap-6">
       <header className="flex items-start gap-3">
         <span
           role="img"
@@ -91,7 +92,7 @@ export function SquadDetail({ squad }: { squad: Squad }) {
           </ul>
         )}
       </section>
-    </div>
+    </Surface>
   );
 }
 

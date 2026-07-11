@@ -54,13 +54,15 @@ describe("AgentsList", () => {
   it("shows each agent's role and model", () => {
     render(<AgentsList agents={agents} />);
     const card = screen.getByRole("link", { name: /recon/i });
-    expect(within(card).getByText("Explorer")).toBeInTheDocument();
-    expect(within(card).getByText("Haiku 4.5")).toBeInTheDocument();
+    // Role and model share one line ("Explorer · Haiku 4.5"), so match on substrings.
+    expect(within(card).getByText(/Explorer/)).toBeInTheDocument();
+    expect(within(card).getByText(/Haiku 4\.5/)).toBeInTheDocument();
   });
 
   it("offers a New agent action linking to the create route", () => {
     render(<AgentsList agents={agents} />);
-    expect(screen.getByRole("link", { name: /new agent/i })).toHaveAttribute("href", "/agents/new");
+    // Exact name targets the header CTA; the grid's "Define a new agent" card also links here.
+    expect(screen.getByRole("link", { name: "New agent" })).toHaveAttribute("href", "/agents/new");
   });
 
   it("shows an empty state when there are no agents", () => {

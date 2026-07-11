@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Surface } from "@/components/surface";
 import { trpc } from "@/lib/trpc/react";
 import { type Agent, type AgentInput, agentToInput } from "../schema";
 import { AgentForm } from "./agent-form";
@@ -31,7 +32,7 @@ export function AgentEditor({ agent }: { agent?: Agent }) {
   };
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-6">
+    <Surface narrow className="gap-6">
       <header className="space-y-1">
         <Link
           href={agent ? `/agents/${agent.id}` : "/agents"}
@@ -49,6 +50,6 @@ export function AgentEditor({ agent }: { agent?: Agent }) {
         submitLabel={editing ? "Save changes" : "Create agent"}
         pending={pending}
       />
-    </div>
+    </Surface>
   );
 }

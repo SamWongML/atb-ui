@@ -1,5 +1,6 @@
 "use client";
 
+import { Surface } from "@/components/surface";
 import { Button } from "@/components/ui/button";
 import { useControlSocket } from "../hooks/use-control-socket";
 import { useSessionStream } from "../hooks/use-session-stream";
@@ -14,7 +15,7 @@ export function SessionView({ sessionId }: { sessionId: string }) {
   const steer = useControlSocket(sessionId);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <Surface narrow className="gap-6">
       <SessionTranscript detail={data} />
       <div className="flex gap-2.5 border-t border-hair pt-4">
         <Button variant="soft" onClick={() => steer("approve")}>
@@ -24,6 +25,6 @@ export function SessionView({ sessionId }: { sessionId: string }) {
           Interrupt
         </Button>
       </div>
-    </div>
+    </Surface>
   );
 }

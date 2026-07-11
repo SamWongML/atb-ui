@@ -1,5 +1,6 @@
 import { Pencil } from "lucide-react";
 import Link from "next/link";
+import { Surface } from "@/components/surface";
 import { cn } from "@/lib/utils";
 import { AGENT_STATUS_META, avatarTint, PERMISSION_META } from "../presentation";
 import type { Agent, AgentPermissions } from "../schema";
@@ -13,7 +14,7 @@ const PERMISSION_ORDER: ReadonlyArray<keyof AgentPermissions> = ["edit", "bash",
 export function AgentDetail({ agent }: { agent: Agent }) {
   const status = AGENT_STATUS_META[agent.status];
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6">
+    <Surface className="gap-6">
       <header className="flex items-start gap-4">
         <span
           className={cn(
@@ -96,7 +97,7 @@ export function AgentDetail({ agent }: { agent: Agent }) {
           {agent.systemPrompt}
         </p>
       </section>
-    </div>
+    </Surface>
   );
 }
 

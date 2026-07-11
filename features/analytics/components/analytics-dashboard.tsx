@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Surface } from "@/components/surface";
 import { formatUsd } from "@/lib/format";
 import { withShare } from "@/lib/share";
 import { avgCostPerRun, colorAt } from "../presentation";
@@ -13,7 +14,7 @@ import { ModelMixChart } from "./model-mix-chart";
 export function AnalyticsDashboard({ data }: { data: Analytics }) {
   const models = withShare(data.modelMix, (model) => model.runs);
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-6">
+    <Surface className="gap-6">
       <header>
         <h1 className="font-serif text-2xl font-medium tracking-tight text-text">Analytics</h1>
         <p className="text-[13px] text-text-3">Spend and model mix · last 7 days</p>
@@ -55,7 +56,7 @@ export function AnalyticsDashboard({ data }: { data: Analytics }) {
           </ul>
         </div>
       </section>
-    </div>
+    </Surface>
   );
 }
 

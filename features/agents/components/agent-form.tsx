@@ -48,11 +48,7 @@ export function AgentForm({
   });
 
   return (
-    <form
-      onSubmit={handleSubmit(onSubmit)}
-      className="mx-auto flex max-w-2xl flex-col gap-5"
-      noValidate
-    >
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5" noValidate>
       <FormField label="Name" error={errors.name?.message}>
         {(id) => <Input id={id} aria-invalid={!!errors.name} {...register("name")} />}
       </FormField>

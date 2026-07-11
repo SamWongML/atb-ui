@@ -4,6 +4,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import Link from "next/link";
 import { parseAsStringLiteral, useQueryState } from "nuqs";
 import { useRef } from "react";
+import { Surface } from "@/components/surface";
 import { cn } from "@/lib/utils";
 import { filterSessions, groupSessions, SESSION_FILTER_VALUES, SESSION_FILTERS } from "../grouping";
 import type { Session } from "../schema";
@@ -58,7 +59,7 @@ export function SessionsList({ sessions }: { sessions: readonly Session[] }) {
   });
 
   return (
-    <div className="mx-auto flex h-full max-w-3xl flex-col gap-5">
+    <Surface fill className="gap-5">
       <div role="tablist" aria-label="Filter sessions" className="flex flex-wrap gap-1.5">
         {SESSION_FILTERS.map((tab) => {
           const selected = tab.value === filter;
@@ -87,7 +88,7 @@ export function SessionsList({ sessions }: { sessions: readonly Session[] }) {
           No sessions in this view.
         </p>
       ) : (
-        <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto">
+        <div ref={scrollRef} className="scroll-surface min-h-0 flex-1 overflow-y-auto">
           <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
             {virtualizer.getVirtualItems().map((item) => {
               const row = rows[item.index];
@@ -110,7 +111,7 @@ export function SessionsList({ sessions }: { sessions: readonly Session[] }) {
           </div>
         </div>
       )}
-    </div>
+    </Surface>
   );
 }
 

@@ -1,41 +1,90 @@
-import { Plus } from "lucide-react";
+"use client";
+
 import Link from "next/link";
+import { useMemo, useState } from "react";
+import { ListHeader } from "@/components/list-header";
+import { Surface } from "@/components/surface";
+import { leadingNumber, type SortDir, type SortField, sortItems } from "@/lib/list-query";
 import { cn } from "@/lib/utils";
 import { WORKFLOW_STATUS_META, WORKFLOW_TRIGGER_META } from "../presentation";
-import type { Workflow } from "../schema";
+import { WORKFLOW_STATUSES, type Workflow } from "../schema";
 
 // The workflows list (README.md §Workflows): a grid of multi-agent pipelines, each card
-// showing its trigger, lifecycle status, step count and the agents in the pipeline. Fed by
-// the RSC page through tRPC; a header action opens the create form.
+// showing its trigger, lifecycle status, step count and run tally. The shared <ListHeader>
+// drives search + status filter + sort; data arrives as a prop from the RSC.
+
+const SORT_FIELDS: SortField<Workflow>[] = [
+  { key: "name", label: "Name", value: (workflow) => workflow.name.toLowerCase() },
+  {
+    key: "status",
+    label: "Status",
+    value: (workflow) => WORKFLOW_STATUSES.indexOf(workflow.status),
+  },
+  { key: "steps", label: "Steps", value: (workflow) => workflow.steps },
+  { key: "runs", label: "Runs", value: (workflow) => leadingNumber(workflow.runs) },
+];
+
+const STATUS_FILTERS: { value: string; label: string }[] = [
+  { value: "all", label: "All" },
+  ...WORKFLOW_STATUSES.map((status) => ({
+    value: status,
+    label: WORKFLOW_STATUS_META[status].label,
+  })),
+];
 
 export function WorkflowsList({ workflows }: { workflows: readonly Workflow[] }) {
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState("all");
+  const [sortKey, setSortKey] = useState("status");
+  const [dir, setDir] = useState<SortDir>("asc");
+
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const filtered = workflows.filter((workflow) => {
+      if (status !== "all" && workflow.status !== status) return false;
+      if (!q) return true;
+      return (
+        workflow.name.toLowerCase().includes(q) || workflow.description.toLowerCase().includes(q)
+      );
+    });
+    return sortItems(filtered, SORT_FIELDS, sortKey, dir);
+  }, [workflows, query, status, sortKey, dir]);
+
   return (
-    <div className="mx-auto flex h-full max-w-5xl flex-col gap-5">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="font-serif text-2xl font-medium tracking-tight text-text">Workflows</h1>
-          <p className="text-[13px] text-text-3">Multi-agent pipelines.</p>
-        </div>
-        <Link
-          href="/workflows/new"
-          className="inline-flex items-center gap-1.5 rounded-md border border-primary-soft-bd bg-primary-soft px-3 py-2 text-[13px] font-medium text-primary transition-colors hover:bg-primary-bg"
-        >
-          <Plus className="size-4" /> New workflow
-        </Link>
-      </header>
+    <Surface className="gap-5">
+      <ListHeader
+        title="Workflows"
+        subtitle="Multi-agent pipelines."
+        count={workflows.length}
+        newButton={{ href: "/workflows/new", label: "New workflow" }}
+        search={{ value: query, onChange: setQuery, placeholder: "Search workflows…" }}
+        filter={{
+          options: STATUS_FILTERS,
+          value: status,
+          onChange: setStatus,
+          ariaLabel: "Filter by status",
+        }}
+        sort={{
+          fields: SORT_FIELDS,
+          value: sortKey,
+          onChange: setSortKey,
+          dir,
+          onToggleDir: () => setDir((current) => (current === "asc" ? "desc" : "asc")),
+        }}
+      />
 
       {workflows.length === 0 ? (
-        <p className="rounded-xl border border-hair bg-panel px-4 py-10 text-center text-[13px] text-text-3">
-          No workflows yet. Create one to get started.
-        </p>
+        <EmptyState message="No workflows yet. Create one to get started." />
+      ) : visible.length === 0 ? (
+        <EmptyState message="No workflows match this view." />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {workflows.map((workflow) => (
+          {visible.map((workflow) => (
             <WorkflowCard key={workflow.id} workflow={workflow} />
           ))}
         </div>
       )}
-    </div>
+    </Surface>
   );
 }
 
@@ -76,5 +125,13 @@ function WorkflowCard({ workflow }: { workflow: Workflow }) {
         <span className="ml-auto">{workflow.runs} runs</span>
       </div>
     </Link>
+  );
+}
+
+function EmptyState({ message }: { message: string }) {
+  return (
+    <p className="rounded-xl border border-hair bg-panel px-4 py-10 text-center text-[13px] text-text-3">
+      {message}
+    </p>
   );
 }

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Surface } from "@/components/surface";
 import { cn } from "@/lib/utils";
 import { SANDBOX_STATUS_META } from "../presentation";
 import type { Sandbox } from "../schema";
@@ -11,7 +12,7 @@ import type { Sandbox } from "../schema";
 export function SandboxesList({ sandboxes }: { sandboxes: readonly Sandbox[] }) {
   const running = sandboxes.filter((s) => s.status === "running").length;
   return (
-    <div className="mx-auto flex h-full max-w-5xl flex-col gap-5">
+    <Surface className="gap-5">
       <header>
         <h1 className="font-serif text-2xl font-medium tracking-tight text-text">Sandboxes</h1>
         <p className="text-[13px] text-text-3">
@@ -30,7 +31,7 @@ export function SandboxesList({ sandboxes }: { sandboxes: readonly Sandbox[] }) 
           ))}
         </div>
       )}
-    </div>
+    </Surface>
   );
 }
 

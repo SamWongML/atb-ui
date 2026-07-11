@@ -1,44 +1,81 @@
-import { Plus } from "lucide-react";
+"use client";
+
 import Link from "next/link";
+import { useMemo, useState } from "react";
+import { ListHeader } from "@/components/list-header";
+import { Surface } from "@/components/surface";
+import { leadingNumber, type SortDir, type SortField, sortItems } from "@/lib/list-query";
 import { cn } from "@/lib/utils";
 import { MCP_STATUS_META } from "../presentation";
-import type { McpServer } from "../schema";
+import { MCP_STATUSES, type McpServer } from "../schema";
 
-// The MCP servers list (README.md §MCP servers): a grid of connected tool servers, each
-// card surfacing its health state inline (degraded flagged in amber, pulsing). Fed by the
-// RSC page through tRPC; a header action opens the connect form.
+// The MCP servers list (README.md §MCP servers): a grid of connected tool servers, each card
+// surfacing its health state inline (degraded flagged in amber, pulsing). The shared
+// <ListHeader> drives search + health filter + sort; data arrives as a prop from the RSC.
+
+const SORT_FIELDS: SortField<McpServer>[] = [
+  { key: "name", label: "Name", value: (server) => server.name.toLowerCase() },
+  { key: "status", label: "Health", value: (server) => MCP_STATUSES.indexOf(server.status) },
+  { key: "tools", label: "Tools", value: (server) => server.toolCount },
+  { key: "latency", label: "Latency", value: (server) => leadingNumber(server.latency) },
+];
+
+const STATUS_FILTERS: { value: string; label: string }[] = [
+  { value: "all", label: "All" },
+  ...MCP_STATUSES.map((status) => ({ value: status, label: MCP_STATUS_META[status].label })),
+];
 
 export function McpList({ servers }: { servers: readonly McpServer[] }) {
-  const degraded = servers.filter((s) => s.status === "degraded").length;
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState("all");
+  const [sortKey, setSortKey] = useState("status");
+  const [dir, setDir] = useState<SortDir>("asc");
+
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const filtered = servers.filter((server) => {
+      if (status !== "all" && server.status !== status) return false;
+      if (!q) return true;
+      return server.name.toLowerCase().includes(q) || server.description.toLowerCase().includes(q);
+    });
+    return sortItems(filtered, SORT_FIELDS, sortKey, dir);
+  }, [servers, query, status, sortKey, dir]);
+
   return (
-    <div className="mx-auto flex h-full max-w-5xl flex-col gap-5">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="font-serif text-2xl font-medium tracking-tight text-text">MCP servers</h1>
-          <p className="text-[13px] text-text-3">
-            {servers.length} connected · {degraded} degraded
-          </p>
-        </div>
-        <Link
-          href="/mcp/new"
-          className="inline-flex items-center gap-1.5 rounded-md border border-primary-soft-bd bg-primary-soft px-3 py-2 text-[13px] font-medium text-primary transition-colors hover:bg-primary-bg"
-        >
-          <Plus className="size-4" /> Connect server
-        </Link>
-      </header>
+    <Surface className="gap-5">
+      <ListHeader
+        title="MCP servers"
+        subtitle="Connected tool servers, health-checked continuously."
+        count={servers.length}
+        newButton={{ href: "/mcp/new", label: "Connect server" }}
+        search={{ value: query, onChange: setQuery, placeholder: "Search servers…" }}
+        filter={{
+          options: STATUS_FILTERS,
+          value: status,
+          onChange: setStatus,
+          ariaLabel: "Filter by health",
+        }}
+        sort={{
+          fields: SORT_FIELDS,
+          value: sortKey,
+          onChange: setSortKey,
+          dir,
+          onToggleDir: () => setDir((current) => (current === "asc" ? "desc" : "asc")),
+        }}
+      />
 
       {servers.length === 0 ? (
-        <p className="rounded-xl border border-hair bg-panel px-4 py-10 text-center text-[13px] text-text-3">
-          No MCP servers connected yet.
-        </p>
+        <EmptyState message="No MCP servers connected yet." />
+      ) : visible.length === 0 ? (
+        <EmptyState message="No MCP servers match this view." />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {servers.map((server) => (
+          {visible.map((server) => (
             <ServerCard key={server.id} server={server} />
           ))}
         </div>
       )}
-    </div>
+    </Surface>
   );
 }
 
@@ -78,5 +115,13 @@ function ServerCard({ server }: { server: McpServer }) {
         <span>{server.latency}</span>
       </div>
     </Link>
+  );
+}
+
+function EmptyState({ message }: { message: string }) {
+  return (
+    <p className="rounded-xl border border-hair bg-panel px-4 py-10 text-center text-[13px] text-text-3">
+      {message}
+    </p>
   );
 }

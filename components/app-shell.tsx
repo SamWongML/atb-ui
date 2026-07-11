@@ -61,7 +61,7 @@ export function AppShell({
   ];
 
   return (
-    <div className="flex min-h-screen bg-bg text-text">
+    <div className="flex h-dvh bg-bg text-text">
       <aside className="flex w-[238px] flex-shrink-0 flex-col gap-4 overflow-y-auto border-r border-border bg-bg p-4">
         <WorkspaceSwitcher
           workspaces={WORKSPACES}
@@ -93,7 +93,7 @@ export function AppShell({
           </button>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <main className="scroll-surface flex-1 overflow-y-auto">{children}</main>
       </div>
 
       <CommandMenu actions={actions} />
