@@ -1,17 +1,28 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { EMPTY_LIST_PREFS } from "@/lib/list-prefs";
+import { ListPrefsProvider } from "@/lib/list-prefs-provider";
 import type { Squad } from "../schema";
 import { SquadsList } from "./squads-list";
 
-// The list renders the shared <ListRail>, which reads the route; mock the
-// next/navigation boundary so the list renders standalone.
+function renderSquads(squads: Squad[]) {
+  return render(
+    <ListPrefsProvider initial={EMPTY_LIST_PREFS}>
+      <SquadsList squads={squads} />
+    </ListPrefsProvider>,
+  );
+}
+
+// The card links read the app-router context; mock the next/navigation boundary so the list
+// renders standalone.
 vi.mock("next/navigation", () => ({
   usePathname: () => "/squads",
   useRouter: () => ({ push: vi.fn(), prefetch: vi.fn(), replace: vi.fn(), back: vi.fn() }),
 }));
 
-// Seam: the squads list rendered from server data (CONTEXT.md §Components) — agent teams
-// with a lead, mission, phase and progress. Roles/text only.
+// Seam: the squads list body rendered from server data (CONTEXT.md §Components) — agent teams
+// with a lead, mission, phase and progress. Roles/text only. The rail lives in the @header slot
+// (squads-rail.test.tsx).
 
 function squad(overrides: Partial<Squad> = {}): Squad {
   return {
@@ -50,7 +61,7 @@ const squads: Squad[] = [
 
 describe("SquadsList", () => {
   it("links each squad to its detail route", () => {
-    render(<SquadsList squads={squads} />);
+    renderSquads(squads);
     expect(screen.getByRole("link", { name: /auth migration squad/i })).toHaveAttribute(
       "href",
       "/squads/auth-migration",
@@ -58,25 +69,20 @@ describe("SquadsList", () => {
   });
 
   it("shows each squad's mission and status", () => {
-    render(<SquadsList squads={squads} />);
+    renderSquads(squads);
     const active = screen.getByRole("link", { name: /auth migration squad/i });
     expect(within(active).getByText(/migrate auth module/i)).toBeInTheDocument();
     expect(within(active).getByText(/active/i)).toBeInTheDocument();
   });
 
   it("shows the squad's phase progress", () => {
-    render(<SquadsList squads={squads} />);
+    renderSquads(squads);
     const active = screen.getByRole("link", { name: /auth migration squad/i });
     expect(within(active).getByText(/3\/5/)).toBeInTheDocument();
   });
 
-  it("offers a New squad action linking to the create route", () => {
-    render(<SquadsList squads={squads} />);
-    expect(screen.getByRole("link", { name: /new squad/i })).toHaveAttribute("href", "/squads/new");
-  });
-
   it("shows an empty state when there are no squads", () => {
-    render(<SquadsList squads={[]} />);
+    renderSquads([]);
     expect(screen.getByText(/no squads/i)).toBeInTheDocument();
   });
 });

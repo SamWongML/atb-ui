@@ -1,17 +1,28 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { EMPTY_LIST_PREFS } from "@/lib/list-prefs";
+import { ListPrefsProvider } from "@/lib/list-prefs-provider";
 import type { McpServer } from "../schema";
 import { McpList } from "./mcp-list";
 
-// The list renders the shared <ListRail>, which reads the route; mock the
-// next/navigation boundary so the list renders standalone.
+function renderMcp(servers: McpServer[]) {
+  return render(
+    <ListPrefsProvider initial={EMPTY_LIST_PREFS}>
+      <McpList servers={servers} />
+    </ListPrefsProvider>,
+  );
+}
+
+// The card links read the app-router context; mock the next/navigation boundary so the list
+// renders standalone.
 vi.mock("next/navigation", () => ({
   usePathname: () => "/mcp",
   useRouter: () => ({ push: vi.fn(), prefetch: vi.fn(), replace: vi.fn(), back: vi.fn() }),
 }));
 
-// Seam: the MCP servers list rendered from server data (CONTEXT.md §Components) — the
-// distinctive behavior is surfacing health (healthy/degraded) inline. Roles/text only.
+// Seam: the MCP servers list body rendered from server data (CONTEXT.md §Components) — the
+// distinctive behavior is surfacing health (healthy/degraded) inline. Roles/text only. The rail
+// lives in the @header slot (mcp-rail.test.tsx).
 
 function server(overrides: Partial<McpServer> = {}): McpServer {
   return {
@@ -37,27 +48,19 @@ const servers: McpServer[] = [
 
 describe("McpList", () => {
   it("links each server to its detail route", () => {
-    render(<McpList servers={servers} />);
+    renderMcp(servers);
     expect(screen.getByRole("link", { name: /github/i })).toHaveAttribute("href", "/mcp/github");
   });
 
   it("surfaces a degraded server's health state", () => {
-    render(<McpList servers={servers} />);
+    renderMcp(servers);
     const slack = screen.getByRole("link", { name: /slack/i });
     expect(within(slack).getByText(/degraded/i)).toBeInTheDocument();
     expect(within(slack).getByText("640ms")).toBeInTheDocument();
   });
 
-  it("offers a Connect server action linking to the create route", () => {
-    render(<McpList servers={servers} />);
-    expect(screen.getByRole("link", { name: /connect server/i })).toHaveAttribute(
-      "href",
-      "/mcp/new",
-    );
-  });
-
   it("shows an empty state when there are no servers", () => {
-    render(<McpList servers={[]} />);
+    renderMcp([]);
     expect(screen.getByText(/no mcp servers/i)).toBeInTheDocument();
   });
 });

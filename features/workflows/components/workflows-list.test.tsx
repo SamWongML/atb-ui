@@ -1,18 +1,28 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { EMPTY_LIST_PREFS } from "@/lib/list-prefs";
+import { ListPrefsProvider } from "@/lib/list-prefs-provider";
 import type { Workflow } from "../schema";
 import { WorkflowsList } from "./workflows-list";
 
-// The list renders the shared <ListRail>, which reads the route; mock the
-// next/navigation boundary so the list renders standalone (no PageChromeProvider →
-// <PageHeader> renders the rail inline).
+function renderWorkflows(workflows: Workflow[]) {
+  return render(
+    <ListPrefsProvider initial={EMPTY_LIST_PREFS}>
+      <WorkflowsList workflows={workflows} />
+    </ListPrefsProvider>,
+  );
+}
+
+// The card links read the app-router context; mock the next/navigation boundary so the list
+// renders standalone.
 vi.mock("next/navigation", () => ({
   usePathname: () => "/workflows",
   useRouter: () => ({ push: vi.fn(), prefetch: vi.fn(), replace: vi.fn(), back: vi.fn() }),
 }));
 
-// Seam: the workflows list rendered from server data (CONTEXT.md §Components) — multi-agent
-// pipelines with a trigger and lifecycle status. Roles/text only.
+// Seam: the workflows list body rendered from server data (CONTEXT.md §Components) — multi-agent
+// pipelines with a trigger and lifecycle status. Roles/text only. The rail lives in the @header
+// slot (workflows-rail.test.tsx).
 
 function workflow(overrides: Partial<Workflow> = {}): Workflow {
   return {
@@ -44,7 +54,7 @@ const workflows: Workflow[] = [
 
 describe("WorkflowsList", () => {
   it("links each workflow to its detail route", () => {
-    render(<WorkflowsList workflows={workflows} />);
+    renderWorkflows(workflows);
     expect(screen.getByRole("link", { name: /idempotency-review/i })).toHaveAttribute(
       "href",
       "/workflows/idem-review",
@@ -52,22 +62,14 @@ describe("WorkflowsList", () => {
   });
 
   it("shows each workflow's trigger and status", () => {
-    render(<WorkflowsList workflows={workflows} />);
+    renderWorkflows(workflows);
     const paused = screen.getByRole("link", { name: /lint-sweep/i });
     expect(within(paused).getByText(/schedule/i)).toBeInTheDocument();
     expect(within(paused).getByText(/paused/i)).toBeInTheDocument();
   });
 
-  it("offers a New workflow action linking to the create route", () => {
-    render(<WorkflowsList workflows={workflows} />);
-    expect(screen.getByRole("link", { name: /new workflow/i })).toHaveAttribute(
-      "href",
-      "/workflows/new",
-    );
-  });
-
   it("shows an empty state when there are no workflows", () => {
-    render(<WorkflowsList workflows={[]} />);
+    renderWorkflows([]);
     expect(screen.getByText(/no workflows/i)).toBeInTheDocument();
   });
 });

@@ -1,17 +1,28 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { EMPTY_LIST_PREFS } from "@/lib/list-prefs";
+import { ListPrefsProvider } from "@/lib/list-prefs-provider";
 import type { Skill } from "../schema";
 import { SkillsList } from "./skills-list";
 
-// The list renders the shared <ListRail>, which reads the route; mock the
-// next/navigation boundary so the list renders standalone.
+function renderSkills(skills: Skill[]) {
+  return render(
+    <ListPrefsProvider initial={EMPTY_LIST_PREFS}>
+      <SkillsList skills={skills} />
+    </ListPrefsProvider>,
+  );
+}
+
+// The card links read the app-router context; mock the next/navigation boundary so the list
+// renders standalone.
 vi.mock("next/navigation", () => ({
   usePathname: () => "/skills",
   useRouter: () => ({ push: vi.fn(), prefetch: vi.fn(), replace: vi.fn(), back: vi.fn() }),
 }));
 
-// Seam: the skills list rendered from server data (CONTEXT.md §Components) — versioned
-// capability packages with a lifecycle status. Roles/text only.
+// Seam: the skills list body rendered from server data (CONTEXT.md §Components) — versioned
+// capability packages with a lifecycle status. Roles/text only. The rail lives in the @header
+// slot (skills-rail.test.tsx).
 
 function skill(overrides: Partial<Skill> = {}): Skill {
   return {
@@ -47,7 +58,7 @@ const skills: Skill[] = [
 
 describe("SkillsList", () => {
   it("links each skill to its detail route", () => {
-    render(<SkillsList skills={skills} />);
+    renderSkills(skills);
     expect(screen.getByRole("link", { name: /test runner/i })).toHaveAttribute(
       "href",
       "/skills/test-runner",
@@ -55,19 +66,14 @@ describe("SkillsList", () => {
   });
 
   it("shows each skill's version and status", () => {
-    render(<SkillsList skills={skills} />);
+    renderSkills(skills);
     const draft = screen.getByRole("link", { name: /changelog/i });
     expect(within(draft).getByText("v1.2")).toBeInTheDocument();
     expect(within(draft).getByText(/draft/i)).toBeInTheDocument();
   });
 
-  it("offers a New skill action linking to the create route", () => {
-    render(<SkillsList skills={skills} />);
-    expect(screen.getByRole("link", { name: /new skill/i })).toHaveAttribute("href", "/skills/new");
-  });
-
   it("shows an empty state when there are no skills", () => {
-    render(<SkillsList skills={[]} />);
+    renderSkills([]);
     expect(screen.getByText(/no skills/i)).toBeInTheDocument();
   });
 });

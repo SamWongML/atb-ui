@@ -1,9 +1,11 @@
 "use client";
 
 import { LayoutGrid, List } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useMemo } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
+import type { ListDensity, ListLayout } from "@/lib/list-prefs";
+import { useListPrefs } from "@/lib/list-prefs-provider";
 import { cn } from "@/lib/utils";
 
 // The one display model for every BUILD list surface (Agents, Workflows, Squads,
@@ -11,10 +13,10 @@ import { cn } from "@/lib/utils";
 // renders (layout · density · full width · grouping · visible properties),
 // independent of WHAT it shows (search/filter/sort stay with each screen's query
 // state). One hook + one popover, so every list screen shares the same preference
-// shape and the same control; a screen declares only its own property vocabulary.
+// shape and the same control; a screen declares only its own property vocabulary and a
+// `scope`. State is persisted per-scope in the shared list-prefs store (survives refresh).
 
-export type ListLayout = "grid" | "list";
-export type ListDensity = "comfortable" | "compact";
+export type { ListDensity, ListLayout } from "@/lib/list-prefs";
 
 export type DisplayProperty = {
   /** Stable key the list/grid renderer checks via `display.visible[key]`. */
@@ -23,6 +25,8 @@ export type DisplayProperty = {
 };
 
 export type ListDisplayConfig = {
+  /** Persistence key — must match the screen's `useListQuery` scope. */
+  scope: string;
   /** The screen's toggleable item properties, in display order. */
   properties: readonly DisplayProperty[];
   /** Whether the list layout supports grouping (shows the "Group" switch). */
@@ -55,35 +59,46 @@ function allVisible(config: ListDisplayConfig): Record<string, boolean> {
 }
 
 export function useListDisplay(config: ListDisplayConfig): ListDisplayState {
+  const { prefs, setDisplay: setDisplayPref } = useListPrefs();
+  const scoped = prefs.display[config.scope];
+
   const defaults = {
     layout: config.defaults?.layout ?? ("grid" as ListLayout),
+    density: "comfortable" as ListDensity,
     fullWidth: config.defaults?.fullWidth ?? false,
     grouped: config.defaults?.grouped ?? true,
   };
-  const [layout, setLayout] = useState<ListLayout>(defaults.layout);
-  const [density, setDensity] = useState<ListDensity>("comfortable");
-  const [fullWidth, setFullWidth] = useState(defaults.fullWidth);
-  const [grouped, setGrouped] = useState(defaults.grouped);
-  const [visible, setVisible] = useState(() => allVisible(config));
+  const layout = scoped?.layout ?? defaults.layout;
+  const density = scoped?.density ?? defaults.density;
+  const fullWidth = scoped?.fullWidth ?? defaults.fullWidth;
+  const grouped = scoped?.grouped ?? defaults.grouped;
+  const visibleOverride = scoped?.visible;
+  const visible = useMemo(
+    () => ({ ...allVisible(config), ...(visibleOverride ?? {}) }),
+    [config, visibleOverride],
+  );
 
+  const { scope } = config;
   return {
     layout,
-    setLayout,
+    setLayout: (value) => setDisplayPref(scope, { layout: value }),
     density,
-    setDensity,
+    setDensity: (value) => setDisplayPref(scope, { density: value }),
     fullWidth,
-    setFullWidth,
+    setFullWidth: (value) => setDisplayPref(scope, { fullWidth: value }),
     grouped,
-    setGrouped,
+    setGrouped: (value) => setDisplayPref(scope, { grouped: value }),
     visible,
-    toggleProperty: (key) => setVisible((prev) => ({ ...prev, [key]: !prev[key] })),
-    reset: () => {
-      setLayout(defaults.layout);
-      setDensity("comfortable");
-      setFullWidth(defaults.fullWidth);
-      setGrouped(defaults.grouped);
-      setVisible(allVisible(config));
-    },
+    toggleProperty: (key) =>
+      setDisplayPref(scope, { visible: { ...visible, [key]: !(visible[key] ?? true) } }),
+    reset: () =>
+      setDisplayPref(scope, {
+        layout: defaults.layout,
+        density: defaults.density,
+        fullWidth: defaults.fullWidth,
+        grouped: defaults.grouped,
+        visible: allVisible(config),
+      }),
     config,
   };
 }

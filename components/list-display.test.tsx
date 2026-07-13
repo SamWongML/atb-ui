@@ -1,6 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
+import { EMPTY_LIST_PREFS } from "@/lib/list-prefs";
+import { ListPrefsProvider } from "@/lib/list-prefs-provider";
 import { type ListDisplayConfig, ListDisplayMenu, useListDisplay } from "./list-display";
 
 // Seam: the display model's public behaviour through the rendered menu — layout,
@@ -9,6 +11,7 @@ import { type ListDisplayConfig, ListDisplayMenu, useListDisplay } from "./list-
 // assertions stay on roles/text (CONTEXT.md), never on internals.
 
 const CONFIG: ListDisplayConfig = {
+  scope: "test-display",
   properties: [
     { key: "description", label: "Description" },
     { key: "usage", label: "Usage" },
@@ -31,27 +34,35 @@ function Host() {
   );
 }
 
+function renderHost() {
+  return render(
+    <ListPrefsProvider initial={EMPTY_LIST_PREFS}>
+      <Host />
+    </ListPrefsProvider>,
+  );
+}
+
 async function openMenu() {
   await userEvent.click(screen.getByRole("button", { name: "Display options" }));
 }
 
 describe("list display", () => {
   it("switches layout through the menu tiles", async () => {
-    render(<Host />);
+    renderHost();
     await openMenu();
     await userEvent.click(screen.getByRole("button", { name: "List" }));
     expect(screen.getByRole("status")).toHaveTextContent(/^list/);
   });
 
   it("toggles full width through the switch", async () => {
-    render(<Host />);
+    renderHost();
     await openMenu();
     await userEvent.click(screen.getByRole("switch", { name: "Full width" }));
     expect(screen.getByRole("status")).toHaveTextContent("full");
   });
 
   it("disables grouping while the grid layout is active", async () => {
-    render(<Host />);
+    renderHost();
     await openMenu();
     expect(screen.getByRole("switch", { name: "Group by status" })).toBeDisabled();
     await userEvent.click(screen.getByRole("button", { name: "List" }));
@@ -59,7 +70,7 @@ describe("list display", () => {
   });
 
   it("toggles property visibility and restores it on reset", async () => {
-    render(<Host />);
+    renderHost();
     await openMenu();
     await userEvent.click(screen.getByRole("button", { name: "Description" }));
     expect(screen.getByRole("status")).toHaveTextContent("no-description");

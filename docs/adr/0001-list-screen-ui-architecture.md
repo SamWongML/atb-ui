@@ -40,7 +40,9 @@ Agents alone.
 
 ## Decisions
 
-1. **Header is a shell slot with a breadcrumb fallback.** `AppShell` renders a
+1. **Header is a shell slot with a breadcrumb fallback.** *(Mechanism superseded by ADR
+   0002: the client portal is replaced by a server-rendered `@header` parallel-route slot,
+   which eliminates the one-frame refresh flash noted in Consequences.)* `AppShell` renders a
    `PageChromeProvider`; the header region hosts a portal target plus the
    route-derived `BreadcrumbNav`. `components/page-chrome.tsx` exposes `<PageHeader>`,
    which portals its children into the slot (and renders inline when no provider is
@@ -64,8 +66,9 @@ Agents alone.
 
 - New list screens cost a `useListQuery` config + a `<PageHeader><ListRail/>` + a card
   renderer — no bespoke toolbar.
-- The header slot uses a client portal, so a hard refresh of a list page paints the
-  breadcrumb fallback for one frame before the rail mounts; client navigations don't.
-  Accepted (fixed header height → no layout shift).
+- ~~The header slot uses a client portal, so a hard refresh of a list page paints the
+  breadcrumb fallback for one frame before the rail mounts.~~ **Superseded by ADR 0002** —
+  the rail is server-rendered via the `@header` parallel-route slot, so there is no refresh
+  flash; the fixed header height still keeps zero layout shift.
 - `ListRail`/`ListDisplay` are theme-safe by construction (semantic tokens only), so
   they re-theme with the app with no per-screen work.

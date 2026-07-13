@@ -1,9 +1,9 @@
 import { AgentsList } from "@/features/agents/components/agents-list";
-import { createServerCaller } from "@/server/trpc/caller";
+import { listAgents } from "@/server/trpc/reads";
 
-// Agents roster. Routing glue only: the RSC reads the agent list from the BFF (tRPC) and
-// hands it to the client roster component, which renders its rail into the shell header.
+// Agents roster. Routing glue only: the RSC reads the agent list from the BFF (tRPC) and hands it
+// to the client roster body. Reads through the shared cached reader so this page and its @header
+// slot collapse to one BFF call per request (ADR 0002).
 export default async function AgentsPage() {
-  const api = await createServerCaller();
-  return <AgentsList agents={await api.agents.list()} />;
+  return <AgentsList agents={await listAgents()} />;
 }

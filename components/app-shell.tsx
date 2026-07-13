@@ -4,7 +4,6 @@ import { LogOut, TerminalSquare } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { type ReactNode, useState } from "react";
 import { BreadcrumbNav } from "@/components/breadcrumb-nav";
-import { PageChromeProvider } from "@/components/page-chrome";
 import { SidebarNav } from "@/components/sidebar-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -14,6 +13,7 @@ import type { CommandAction } from "@/features/command-menu/command-palette";
 import { useCommandMenu } from "@/features/command-menu/store";
 import { sessionBreadcrumbEntity } from "@/features/sessions/breadcrumb";
 import type { Session } from "@/features/sessions/schema";
+import { isListRoute } from "@/lib/nav";
 import { toggleTheme } from "@/lib/theme";
 import {
   DEFAULT_ENVIRONMENT_ID,
@@ -41,10 +41,12 @@ export function AppShell({
   children,
   user,
   sessions = [],
+  header,
 }: {
   children: ReactNode;
   user?: SessionUser;
   sessions?: readonly Session[];
+  header?: ReactNode;
 }) {
   const pathname = usePathname() || "/overview";
   const setPaletteOpen = useCommandMenu((state) => state.setOpen);
@@ -84,19 +86,19 @@ export function AppShell({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* The header is a slot (ADR 0001): list screens fill it with their <ListRail>
-            via <PageHeader>; every other route falls back to the route breadcrumb. One
-            fixed-height bar app-wide, so the fill/fallback swap never shifts layout. */}
-        <PageChromeProvider
-          className="flex min-h-11 flex-shrink-0 flex-col justify-center border-b border-border"
-          fallback={
+        {/* The header region (ADR 0002): list routes fill it with their <ListRail>, server-
+            rendered via the @header parallel-route slot so a hard refresh paints the rail on the
+            first frame; every other route shows the route breadcrumb. One fixed-height bar
+            app-wide, so the rail/breadcrumb difference never shifts layout. */}
+        <header className="flex min-h-11 flex-shrink-0 flex-col justify-center border-b border-border">
+          {header}
+          {!isListRoute(pathname) && (
             <div className="flex h-11 items-center px-5">
               <BreadcrumbNav pathname={pathname} entity={entity} />
             </div>
-          }
-        >
-          <main className="scroll-surface flex-1 overflow-y-auto">{children}</main>
-        </PageChromeProvider>
+          )}
+        </header>
+        <main className="scroll-surface flex-1 overflow-y-auto">{children}</main>
       </div>
 
       <CommandMenu actions={actions} />

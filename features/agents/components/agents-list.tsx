@@ -1,113 +1,42 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { Bot, Plus, SearchX } from "lucide-react";
 import Link from "next/link";
 import { Card, CardFooter } from "@/components/card";
 import { CardGrid } from "@/components/card-grid";
-import {
-  type DisplayProperty,
-  type ListDisplayConfig,
-  type ListDisplayState,
-  useListDisplay,
-} from "@/components/list-display";
-import { ListRail } from "@/components/list-rail";
-import { PageHeader } from "@/components/page-chrome";
+import { EmptyState } from "@/components/empty-state";
+import { type ListDisplayState, useListDisplay } from "@/components/list-display";
 import { Surface } from "@/components/surface";
-import { leadingNumber, type SortField } from "@/lib/list-query";
 import { useListQuery } from "@/lib/use-list-query";
 import { cn } from "@/lib/utils";
+import { AGENTS_DISPLAY_CONFIG, AGENTS_LIST_QUERY } from "../list-config";
 import { AGENT_STATUS_META, avatarTint, PERMISSION_META } from "../presentation";
 import { AGENT_STATUSES, type Agent, type AgentPermissions, type AgentStatus } from "../schema";
 
-// The agents roster (README.md §Agents, ADR 0001): the roster's identity cards, driven
-// by the shared list system — <ListRail> in the shell header (search · status tabs ·
-// sort · filter · display · New) via <PageHeader>, the centralized useListQuery/
-// useListDisplay state, and a grid/list that honours the Display popover's layout,
-// density and visible-property choices. Data arrives as a prop from the RSC.
-
-const SORT_FIELDS: SortField<Agent>[] = [
-  { key: "name", label: "Name", value: (agent) => agent.name.toLowerCase() },
-  { key: "status", label: "Status", value: (agent) => AGENT_STATUSES.indexOf(agent.status) },
-  { key: "tasks", label: "Tasks", value: (agent) => leadingNumber(agent.usage.tasks) },
-  { key: "merged", label: "Merged rate", value: (agent) => leadingNumber(agent.usage.merged) },
-  { key: "cost", label: "Cost", value: (agent) => leadingNumber(agent.usage.cost) },
-];
-
-const STATUS_FILTERS = [
-  { value: "all", label: "All" },
-  ...AGENT_STATUSES.map((status) => ({ value: status, label: AGENT_STATUS_META[status].label })),
-];
-
-const DISPLAY_PROPERTIES: readonly DisplayProperty[] = [
-  { key: "description", label: "Description" },
-  { key: "capabilities", label: "Capabilities" },
-  { key: "usage", label: "Usage" },
-  { key: "permissions", label: "Permissions" },
-];
-
-const DISPLAY_CONFIG: ListDisplayConfig = { properties: DISPLAY_PROPERTIES, groupable: true };
-
-function agentMatches(agent: Agent, query: string): boolean {
-  return (
-    agent.name.toLowerCase().includes(query) ||
-    agent.role.toLowerCase().includes(query) ||
-    agent.description.toLowerCase().includes(query) ||
-    agent.skills.some((skill) => skill.toLowerCase().includes(query)) ||
-    agent.mcps.some((mcp) => mcp.toLowerCase().includes(query))
-  );
-}
+// The agents roster body (README.md §Agents, ADR 0002): the identity cards, driven by the
+// centralized useListQuery/useListDisplay state (persisted per-scope via the cookie so the view
+// survives a refresh) and a grid/list that honours the Display popover's layout, density and
+// visible-property choices. The rail (search · filter · sort · New) is server-rendered separately
+// into the shell @header slot; both halves read the shared config in ../list-config.
+// Data arrives as a prop from the RSC.
 
 export function AgentsList({ agents }: { agents: readonly Agent[] }) {
-  const query = useListQuery({
-    items: agents,
-    sortFields: SORT_FIELDS,
-    statuses: AGENT_STATUSES,
-    statusOf: (agent) => agent.status,
-    matches: agentMatches,
-  });
-  const display = useListDisplay(DISPLAY_CONFIG);
+  const query = useListQuery({ items: agents, ...AGENTS_LIST_QUERY });
+  const display = useListDisplay(AGENTS_DISPLAY_CONFIG);
 
   return (
-    <>
-      <PageHeader>
-        <ListRail
-          count={agents.length}
-          filter={{
-            options: STATUS_FILTERS,
-            value: query.status,
-            onChange: query.setStatus,
-            counts: query.counts,
-            ariaLabel: "Filter by status",
-          }}
-          sort={{
-            fields: SORT_FIELDS,
-            value: query.sortKey,
-            onChange: query.setSortKey,
-            dir: query.dir,
-            onToggleDir: query.toggleDir,
-          }}
-          search={{
-            value: query.query,
-            onChange: query.setQuery,
-            placeholder: "Search agents, roles, skills…",
-          }}
-          newButton={{ href: "/agents/new", label: "New agent" }}
-          display={display}
-        />
-      </PageHeader>
-
-      <Surface fullWidth={display.fullWidth} className="gap-3">
-        <p className="px-0.5 font-mono text-[11px] text-text-4">
-          {query.visible.length} of {agents.length} agents · sorted by{" "}
-          {query.activeSortLabel.toLowerCase()} {query.dir === "asc" ? "↑" : "↓"}
-        </p>
-        {display.layout === "grid" ? (
-          <AgentGrid agents={query.visible} total={agents.length} display={display} />
-        ) : (
-          <AgentRosterList agents={query.visible} total={agents.length} display={display} />
-        )}
-      </Surface>
-    </>
+    <Surface fullWidth={display.fullWidth} className="gap-3.5">
+      <p className="flex items-center gap-1.5 px-0.5 font-mono text-[11px] text-text-4">
+        <span className="text-text-3">{query.visible.length}</span> of {agents.length} agents
+        <span aria-hidden>·</span> sorted by {query.activeSortLabel.toLowerCase()}
+        <span className="text-text-3">{query.dir === "asc" ? "↑" : "↓"}</span>
+      </p>
+      {display.layout === "grid" ? (
+        <AgentGrid agents={query.visible} total={agents.length} display={display} />
+      ) : (
+        <AgentRosterList agents={query.visible} total={agents.length} display={display} />
+      )}
+    </Surface>
   );
 }
 
@@ -122,8 +51,8 @@ function AgentGrid({
   total: number;
   display: ListDisplayState;
 }) {
-  if (total === 0) return <EmptyState message="No agents yet. Create one to get started." />;
-  if (agents.length === 0) return <EmptyState message="No agents match this view." />;
+  if (total === 0) return <AgentsEmpty variant="none" />;
+  if (agents.length === 0) return <AgentsEmpty variant="filtered" />;
   const trimmed = display.density === "compact" || Object.values(display.visible).some((on) => !on);
   const cardClass = trimmed ? "h-auto min-h-[132px]" : undefined;
   return (
@@ -158,7 +87,9 @@ function AgentCard({
         <div className="mb-3 flex items-start gap-3">
           <AgentAvatar agent={agent} />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[14.5px] font-semibold text-text">{agent.name}</p>
+            <p className="truncate text-[14.5px] font-semibold tracking-[-0.01em] text-text">
+              {agent.name}
+            </p>
             <p className="mt-0.5 truncate font-mono text-[11px] text-text-3">
               {agent.role} · {agent.model}
             </p>
@@ -210,8 +141,8 @@ function AgentRosterList({
   total: number;
   display: ListDisplayState;
 }) {
-  if (total === 0) return <EmptyState message="No agents yet. Create one to get started." />;
-  if (agents.length === 0) return <EmptyState message="No agents match this view." />;
+  if (total === 0) return <AgentsEmpty variant="none" />;
+  if (agents.length === 0) return <AgentsEmpty variant="filtered" />;
 
   const groups = display.grouped
     ? AGENT_STATUSES.map((status) => ({
@@ -402,10 +333,30 @@ function CapabilityChips({ agent, max, noWrap }: { agent: Agent; max: number; no
   );
 }
 
-function EmptyState({ message }: { message: string }) {
+function AgentsEmpty({ variant }: { variant: "none" | "filtered" }) {
+  if (variant === "filtered") {
+    return (
+      <EmptyState
+        icon={SearchX}
+        title="No agents match this view"
+        description="Try clearing the search or switching the status filter."
+      />
+    );
+  }
   return (
-    <p className="rounded-xl border border-hair bg-panel px-4 py-12 text-center text-[13px] text-text-3">
-      {message}
-    </p>
+    <EmptyState
+      icon={Bot}
+      title="No agents yet"
+      description="Agents are the roles you delegate work to. Create your first one to start orchestrating."
+      action={
+        <Link
+          href="/agents/new"
+          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-primary-soft-bd bg-primary-soft px-3 text-[12.5px] font-medium text-primary transition-colors hover:bg-primary-bg"
+        >
+          <Plus className="size-3.5" aria-hidden />
+          New agent
+        </Link>
+      }
+    />
   );
 }

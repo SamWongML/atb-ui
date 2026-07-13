@@ -29,7 +29,7 @@ import { activeNavLocation } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
 // The one list-screen rail (ADR 0001) — every BUILD list (Agents, Workflows, Squads,
-// Skills, MCP) renders this into the shell header via <PageHeader>. A single dense row:
+// Skills, MCP) renders this into the shell header via the @header slot. A single dense row:
 // back · location (Group / Section · count) · status tabs · [gap] · sort · filter ·
 // optional display · New. Search lives in a toggled "Filter" subheader (Linear's
 // pattern), separate from the global ⌘K search in the sidebar. Generic + prop-driven:

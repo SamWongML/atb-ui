@@ -1,15 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
+import { useListPrefs } from "@/lib/list-prefs-provider";
 import { type SortDir, type SortField, sortItems } from "@/lib/list-query";
 
-// The one query model behind every BUILD list screen (Agents, Workflows, Squads,
-// Skills, MCP). Each screen repeated the same four pieces of state (search · status ·
-// sort field · direction) plus a filter/sort memo and a per-status count; this hook
-// centralizes all of it. A screen supplies only what is screen-specific: its sort
-// fields, how to read an item's status, its status vocabulary, and its search
-// predicate. Framework state lives here; the rendering (rail + cards) stays in the
-// screen. Pairs with <ListRail>, which renders this state.
+// The one query model behind every BUILD list screen (Agents, Workflows, Squads, Skills,
+// MCP). Each screen repeated the same four pieces of state (search · status · sort field ·
+// direction) plus a filter/sort memo and a per-status count; this hook centralizes it. A
+// screen supplies only what is screen-specific: a `scope` (its persistence key), its sort
+// fields, how to read an item's status, its status vocabulary, and its search predicate.
+// State is read from (and written to) the cookie-backed list-prefs provider, so it survives
+// a refresh with no flash. Pairs with <ListRail>, which renders this state.
 
 export type ListQuery<T> = {
   query: string;
@@ -29,6 +30,7 @@ export type ListQuery<T> = {
 };
 
 export function useListQuery<T>({
+  scope,
   items,
   sortFields,
   statuses,
@@ -37,6 +39,8 @@ export function useListQuery<T>({
   defaultSortKey = "status",
   defaultDir = "asc",
 }: {
+  /** Persistence key — each screen's remembered view is isolated under its scope. */
+  scope: string;
   items: readonly T[];
   sortFields: readonly SortField<T>[];
   /** The status values this screen filters by (excluding the synthetic `all`). */
@@ -47,10 +51,12 @@ export function useListQuery<T>({
   defaultSortKey?: string;
   defaultDir?: SortDir;
 }): ListQuery<T> {
-  const [query, setQuery] = useState("");
-  const [status, setStatus] = useState("all");
-  const [sortKey, setSortKey] = useState(defaultSortKey);
-  const [dir, setDir] = useState<SortDir>(defaultDir);
+  const { prefs, setQuery: setQueryPref } = useListPrefs();
+  const scoped = prefs.query[scope];
+  const query = scoped?.query ?? "";
+  const status = scoped?.status ?? "all";
+  const sortKey = scoped?.sortKey ?? defaultSortKey;
+  const dir = scoped?.dir ?? defaultDir;
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -72,14 +78,14 @@ export function useListQuery<T>({
 
   return {
     query,
-    setQuery,
+    setQuery: (value) => setQueryPref(scope, { query: value }),
     status,
-    setStatus,
+    setStatus: (value) => setQueryPref(scope, { status: value }),
     sortKey,
-    setSortKey,
+    setSortKey: (key) => setQueryPref(scope, { sortKey: key }),
     dir,
-    setDir,
-    toggleDir: () => setDir((current) => (current === "asc" ? "desc" : "asc")),
+    setDir: (value) => setQueryPref(scope, { dir: value }),
+    toggleDir: () => setQueryPref(scope, { dir: dir === "asc" ? "desc" : "asc" }),
     visible,
     counts,
     activeSortLabel:

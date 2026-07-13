@@ -1,82 +1,36 @@
 "use client";
 
 import Link from "next/link";
-import { ListRail } from "@/components/list-rail";
-import { PageHeader } from "@/components/page-chrome";
+import { EmptyState } from "@/components/empty-state";
 import { Surface } from "@/components/surface";
-import { leadingNumber, type SortField } from "@/lib/list-query";
 import { useListQuery } from "@/lib/use-list-query";
 import { cn } from "@/lib/utils";
+import { SQUADS_LIST_QUERY } from "../list-config";
 import { SQUAD_STATUS_META } from "../presentation";
-import { SQUAD_STATUSES, type Squad } from "../schema";
+import type { Squad } from "../schema";
 
-// The squads list (README.md §Squads, ADR 0001): a grid of agent teams, each card
-// showing its lead + members, mission, phase and progress. Chrome is the shared
-// <ListRail> (search · status tabs · sort · New) in the shell header; state is the
-// shared useListQuery. Data arrives as a prop from the RSC.
-
-const SORT_FIELDS: SortField<Squad>[] = [
-  { key: "name", label: "Name", value: (squad) => squad.name.toLowerCase() },
-  { key: "status", label: "Status", value: (squad) => SQUAD_STATUSES.indexOf(squad.status) },
-  { key: "progress", label: "Progress", value: (squad) => squad.stepsDone / squad.stepsTotal },
-  { key: "runs", label: "Runs", value: (squad) => leadingNumber(squad.runs) },
-];
-
-const STATUS_FILTERS = [
-  { value: "all", label: "All" },
-  ...SQUAD_STATUSES.map((status) => ({ value: status, label: SQUAD_STATUS_META[status].label })),
-];
+// The squads list body (README.md §Squads, ADR 0002): a grid of agent teams, each card
+// showing its lead + members, mission, phase and progress. The rail (search · status tabs ·
+// sort · New) is server-rendered into the shell @header slot; state is the shared
+// useListQuery. Data arrives as a prop from the RSC.
 
 export function SquadsList({ squads }: { squads: readonly Squad[] }) {
-  const query = useListQuery({
-    items: squads,
-    sortFields: SORT_FIELDS,
-    statuses: SQUAD_STATUSES,
-    statusOf: (squad) => squad.status,
-    matches: (squad, q) =>
-      squad.name.toLowerCase().includes(q) ||
-      squad.mission.toLowerCase().includes(q) ||
-      squad.description.toLowerCase().includes(q),
-  });
+  const query = useListQuery({ items: squads, ...SQUADS_LIST_QUERY });
 
   return (
-    <>
-      <PageHeader>
-        <ListRail
-          count={squads.length}
-          filter={{
-            options: STATUS_FILTERS,
-            value: query.status,
-            onChange: query.setStatus,
-            counts: query.counts,
-            ariaLabel: "Filter by status",
-          }}
-          sort={{
-            fields: SORT_FIELDS,
-            value: query.sortKey,
-            onChange: query.setSortKey,
-            dir: query.dir,
-            onToggleDir: query.toggleDir,
-          }}
-          search={{ value: query.query, onChange: query.setQuery, placeholder: "Search squads…" }}
-          newButton={{ href: "/squads/new", label: "New squad" }}
-        />
-      </PageHeader>
-
-      <Surface className="gap-4">
-        {squads.length === 0 ? (
-          <EmptyState message="No squads yet. Create one to get started." />
-        ) : query.visible.length === 0 ? (
-          <EmptyState message="No squads match this view." />
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {query.visible.map((squad) => (
-              <SquadCard key={squad.id} squad={squad} />
-            ))}
-          </div>
-        )}
-      </Surface>
-    </>
+    <Surface className="gap-4">
+      {squads.length === 0 ? (
+        <EmptyState title="No squads yet." description="Create one to get started." />
+      ) : query.visible.length === 0 ? (
+        <EmptyState title="No squads match this view." />
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {query.visible.map((squad) => (
+            <SquadCard key={squad.id} squad={squad} />
+          ))}
+        </div>
+      )}
+    </Surface>
   );
 }
 
@@ -127,13 +81,5 @@ function SquadCard({ squad }: { squad: Squad }) {
         </span>
       </div>
     </Link>
-  );
-}
-
-function EmptyState({ message }: { message: string }) {
-  return (
-    <p className="rounded-xl border border-hair bg-panel px-4 py-10 text-center text-[13px] text-text-3">
-      {message}
-    </p>
   );
 }
