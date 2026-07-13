@@ -1,9 +1,9 @@
 import { SquadsList } from "@/features/squads/components/squads-list";
-import { createServerCaller } from "@/server/trpc/caller";
+import { listSquads } from "@/server/trpc/reads";
 
-// Squads. Routing glue only: the RSC reads the squad list from the BFF (tRPC) and hands it
-// to the client list component.
+// Squads. Routing glue only: the RSC reads the squad list from the BFF (tRPC) and hands it to the
+// client list component. Reads through the shared cached reader so this page and its @header slot
+// collapse to one BFF call per request (ADR 0002).
 export default async function SquadsPage() {
-  const api = await createServerCaller();
-  return <SquadsList squads={await api.squads.list()} />;
+  return <SquadsList squads={await listSquads()} />;
 }

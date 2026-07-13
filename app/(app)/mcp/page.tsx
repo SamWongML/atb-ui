@@ -1,9 +1,9 @@
 import { McpList } from "@/features/mcp/components/mcp-list";
-import { createServerCaller } from "@/server/trpc/caller";
+import { listMcpServers } from "@/server/trpc/reads";
 
-// MCP servers. Routing glue only: the RSC reads the server list from the BFF (tRPC) and
-// hands it to the client list component.
+// MCP servers. Routing glue only: the RSC reads the server list from the BFF (tRPC) and hands it to
+// the client list component. Reads through the shared cached reader so this page and its @header
+// slot collapse to one BFF call per request (ADR 0002).
 export default async function McpPage() {
-  const api = await createServerCaller();
-  return <McpList servers={await api.mcp.list()} />;
+  return <McpList servers={await listMcpServers()} />;
 }

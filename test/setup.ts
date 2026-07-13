@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll } from "vitest";
+import { LIST_PREFS_COOKIE } from "@/lib/list-prefs";
 import { server } from "./server";
 
 // jsdom lacks the pointer-capture + scroll APIs Radix primitives (dropdown, popover,
@@ -53,6 +54,9 @@ beforeAll(() => {
 afterEach(() => {
   server.resetHandlers();
   cleanup();
+  // Expire the list-prefs cookie so a persisted view from one test can't leak into the next.
+  // biome-ignore lint/suspicious/noDocumentCookie: sync cookie clear for test isolation; the Cookie Store API is async and unavailable in jsdom.
+  document.cookie = `${LIST_PREFS_COOKIE}=; path=/; max-age=0`;
 });
 
 afterAll(() => {

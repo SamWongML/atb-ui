@@ -1,80 +1,36 @@
 "use client";
 
 import Link from "next/link";
-import { ListRail } from "@/components/list-rail";
-import { PageHeader } from "@/components/page-chrome";
+import { EmptyState } from "@/components/empty-state";
 import { Surface } from "@/components/surface";
-import { leadingNumber, type SortField } from "@/lib/list-query";
 import { useListQuery } from "@/lib/use-list-query";
 import { cn } from "@/lib/utils";
+import { MCP_LIST_QUERY } from "../list-config";
 import { MCP_STATUS_META } from "../presentation";
-import { MCP_STATUSES, type McpServer } from "../schema";
+import type { McpServer } from "../schema";
 
-// The MCP servers list (README.md §MCP servers, ADR 0001): a grid of connected tool
+// The MCP servers list body (README.md §MCP servers, ADR 0002): a grid of connected tool
 // servers, each card surfacing its health state inline (degraded flagged in amber,
-// pulsing). Chrome is the shared <ListRail> (search · health tabs · sort · Connect) in
-// the shell header; state is the shared useListQuery. Data is a prop from the RSC.
-
-const SORT_FIELDS: SortField<McpServer>[] = [
-  { key: "name", label: "Name", value: (server) => server.name.toLowerCase() },
-  { key: "status", label: "Health", value: (server) => MCP_STATUSES.indexOf(server.status) },
-  { key: "tools", label: "Tools", value: (server) => server.toolCount },
-  { key: "latency", label: "Latency", value: (server) => leadingNumber(server.latency) },
-];
-
-const STATUS_FILTERS = [
-  { value: "all", label: "All" },
-  ...MCP_STATUSES.map((status) => ({ value: status, label: MCP_STATUS_META[status].label })),
-];
+// pulsing). The rail (search · health tabs · sort · Connect) is server-rendered into the
+// shell @header slot; state is the shared useListQuery. Data is a prop from the RSC.
 
 export function McpList({ servers }: { servers: readonly McpServer[] }) {
-  const query = useListQuery({
-    items: servers,
-    sortFields: SORT_FIELDS,
-    statuses: MCP_STATUSES,
-    statusOf: (server) => server.status,
-    matches: (server, q) =>
-      server.name.toLowerCase().includes(q) || server.description.toLowerCase().includes(q),
-  });
+  const query = useListQuery({ items: servers, ...MCP_LIST_QUERY });
 
   return (
-    <>
-      <PageHeader>
-        <ListRail
-          count={servers.length}
-          filter={{
-            options: STATUS_FILTERS,
-            value: query.status,
-            onChange: query.setStatus,
-            counts: query.counts,
-            ariaLabel: "Filter by health",
-          }}
-          sort={{
-            fields: SORT_FIELDS,
-            value: query.sortKey,
-            onChange: query.setSortKey,
-            dir: query.dir,
-            onToggleDir: query.toggleDir,
-          }}
-          search={{ value: query.query, onChange: query.setQuery, placeholder: "Search servers…" }}
-          newButton={{ href: "/mcp/new", label: "Connect server" }}
-        />
-      </PageHeader>
-
-      <Surface className="gap-4">
-        {servers.length === 0 ? (
-          <EmptyState message="No MCP servers connected yet." />
-        ) : query.visible.length === 0 ? (
-          <EmptyState message="No MCP servers match this view." />
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {query.visible.map((server) => (
-              <ServerCard key={server.id} server={server} />
-            ))}
-          </div>
-        )}
-      </Surface>
-    </>
+    <Surface className="gap-4">
+      {servers.length === 0 ? (
+        <EmptyState title="No MCP servers connected yet." />
+      ) : query.visible.length === 0 ? (
+        <EmptyState title="No MCP servers match this view." />
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {query.visible.map((server) => (
+            <ServerCard key={server.id} server={server} />
+          ))}
+        </div>
+      )}
+    </Surface>
   );
 }
 
@@ -114,13 +70,5 @@ function ServerCard({ server }: { server: McpServer }) {
         <span>{server.latency}</span>
       </div>
     </Link>
-  );
-}
-
-function EmptyState({ message }: { message: string }) {
-  return (
-    <p className="rounded-xl border border-hair bg-panel px-4 py-10 text-center text-[13px] text-text-3">
-      {message}
-    </p>
   );
 }

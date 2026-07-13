@@ -89,3 +89,18 @@ export function activeNavLocation(
   const group = NAV_GROUPS.find((candidate) => candidate.items.includes(item));
   return group ? { group, item } : undefined;
 }
+
+/**
+ * The BUILD list routes whose rail fills the shell `@header` slot (ADR 0002). Named by each
+ * screen's `useListQuery` scope, which is also its `@header/<scope>` slot folder.
+ */
+export const LIST_ROUTE_SCOPES = ["agents", "workflows", "squads", "skills", "mcp"] as const;
+
+/**
+ * Whether a pathname is a build-list index (exactly `/agents`, `/workflows`, …). Those routes
+ * render the server-rendered rail via the `@header` slot, so the shell omits its breadcrumb there;
+ * every other route (including list detail/new pages) shows the breadcrumb.
+ */
+export function isListRoute(pathname: string): boolean {
+  return LIST_ROUTE_SCOPES.some((scope) => pathname === `/${scope}`);
+}

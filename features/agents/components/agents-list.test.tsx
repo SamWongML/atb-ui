@@ -1,19 +1,20 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { EMPTY_LIST_PREFS } from "@/lib/list-prefs";
+import { ListPrefsProvider } from "@/lib/list-prefs-provider";
 import type { Agent } from "../schema";
 import { AgentsList } from "./agents-list";
 
-// The roster renders the shared <ListRail>, which reads the route (breadcrumb + back);
-// mock the next/navigation boundary like the shell test does so the list renders
-// standalone (no PageChromeProvider → <PageHeader> renders the rail inline).
+// The card links read the app-router context; mock the next/navigation boundary so the roster
+// renders standalone.
 vi.mock("next/navigation", () => ({
   usePathname: () => "/agents",
   useRouter: () => ({ push: vi.fn(), prefetch: vi.fn(), replace: vi.fn(), back: vi.fn() }),
 }));
 
-// Seam: the agents roster rendered from server data (CONTEXT.md §Components) — asserted
-// through roles/text, never structure. The RSC page passes `agents`; this component lays
-// them out as cards that link to each agent's detail route.
+// Seam: the agents roster body rendered from server data (CONTEXT.md §Components) — asserted
+// through roles/text, never structure. The rail (search · filter · sort · New) now lives in the
+// @header slot and is covered by agents-rail.test.tsx.
 
 function agent(overrides: Partial<Agent> = {}): Agent {
   return {
@@ -50,9 +51,17 @@ const agents: Agent[] = [
   agent({ id: "recon", avatar: "RC", name: "Recon", role: "Explorer", model: "Haiku 4.5" }),
 ];
 
+function renderAgents(items: Agent[]) {
+  return render(
+    <ListPrefsProvider initial={EMPTY_LIST_PREFS}>
+      <AgentsList agents={items} />
+    </ListPrefsProvider>,
+  );
+}
+
 describe("AgentsList", () => {
   it("links each agent card to its detail route", () => {
-    render(<AgentsList agents={agents} />);
+    renderAgents(agents);
     expect(screen.getByRole("link", { name: /orchestrator/i })).toHaveAttribute(
       "href",
       "/agents/orchestrator",
@@ -60,21 +69,15 @@ describe("AgentsList", () => {
   });
 
   it("shows each agent's role and model", () => {
-    render(<AgentsList agents={agents} />);
+    renderAgents(agents);
     const card = screen.getByRole("link", { name: /recon/i });
     // Role and model share one line ("Explorer · Haiku 4.5"), so match on substrings.
     expect(within(card).getByText(/Explorer/)).toBeInTheDocument();
     expect(within(card).getByText(/Haiku 4\.5/)).toBeInTheDocument();
   });
 
-  it("offers a New agent action linking to the create route", () => {
-    render(<AgentsList agents={agents} />);
-    // Exact name targets the header CTA; the grid's "Define a new agent" card also links here.
-    expect(screen.getByRole("link", { name: "New agent" })).toHaveAttribute("href", "/agents/new");
-  });
-
   it("shows an empty state when there are no agents", () => {
-    render(<AgentsList agents={[]} />);
+    renderAgents([]);
     expect(screen.getByText(/no agents/i)).toBeInTheDocument();
   });
 });
