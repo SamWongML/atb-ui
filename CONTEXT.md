@@ -7,8 +7,12 @@ tests so names and interfaces match the project's language.
 
 - **Session** — a launched, steerable agent run. The hero surface. Grouped by
   status: `needs_you` (amber) · `active` (clay) · `review` (violet) · `done` (green).
-- **Agent** — a configured worker (model + edit/bash/network permissions + system
-  prompt + attached skills/MCPs).
+- **Agent** — a configured worker (harness + model + edit/bash/network permissions +
+  system prompt + attached skills/MCPs).
+- **Harness** — the coding-agent framework an Agent runs inside (Claude Code · Codex ·
+  OpenCode). It drives the model and defines the tool/permission protocol. Distinct from
+  **Sandbox** (the compute environment agents run inside) and from **model** (the LLM it
+  drives); a harness supports a set of models (`HARNESS_MODELS`).
 - **Squad** — a team of agents with a lead, mission, target repo, and phase.
 - **Workflow** — a multi-agent pipeline (nodes + connections).
 - **Skill** — a reusable capability package (versioned).
