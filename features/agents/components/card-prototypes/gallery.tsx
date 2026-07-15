@@ -24,6 +24,11 @@ import { REVEAL_NAME, VariantReveal } from "./variant-f-reveal";
 // folded into agents-list.tsx properly; this folder, the switcher and the page hook-in are
 // then deleted (the full set survives on the prototype branch as the primary source).
 //
+// Refinement (owner feedback): an agent is a ROLE, not a worker — one definition fanned out
+// into concurrent sessions across different repos. Every variant now renders that fan-out
+// (session rows / chips / tree / manifest / dots, per its own idiom) using the sessions
+// feature's state colors, instead of pretending there is one current task.
+//
 // Research trail (2026-07): agent-dashboard patterns — a fleet card answers "what is it doing
 // now" first (proactive status) with outcome metrics, not vanity ones · KPI-card anatomy —
 // label → value → delta → word-sized sparkline (Tufte: a number without history is noise) ·

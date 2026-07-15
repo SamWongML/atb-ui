@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type { Agent } from "../../schema";
-import { TintAvatar } from "./fragments";
-import { agentPulse } from "./prototype-data";
+import { SESSION_STATE_META, TintAvatar } from "./fragments";
+import { agentPulse, repoShort } from "./prototype-data";
 
 // PROTOTYPE — throwaway. Variant A "Mission control": the live-ops treatment. Research basis:
 // agent-dashboard patterns (proactive status) say a fleet card must answer "what is it doing
-// RIGHT NOW" before anything else, with a short activity trace for trust — so the live signal
-// is the hero, identity is compressed to one row, and rollups sink to the footer. Working
-// agents carry a clay ring + LIVE tag; idle agents recede.
+// RIGHT NOW" before anything else — and an agent is a role fanned out into concurrent
+// sessions across repos, so the hero is the SESSION STACK: one row per live session
+// (state dot · repo · task · elapsed), attention states first. Identity is compressed to one
+// row; rollups sink to the footer. Working agents carry a clay ring + live count; idle recede.
 
 export const MISSION_CONTROL_NAME = "Mission control";
 
@@ -22,9 +23,15 @@ export function VariantMissionControl({ agents }: { agents: readonly Agent[] }) 
   );
 }
 
+const STATE_PRIORITY = { needs_you: 0, review: 1, active: 2 } as const;
+
 function MissionCard({ agent }: { agent: Agent }) {
   const pulse = agentPulse(agent);
   const working = agent.status === "working";
+  // Triage order: sessions that are blocked on the operator surface first.
+  const sessions = [...pulse.sessions].sort(
+    (a, b) => STATE_PRIORITY[a.state] - STATE_PRIORITY[b.state],
+  );
   return (
     <Link
       href={`/agents/${agent.id}`}
@@ -46,7 +53,7 @@ function MissionCard({ agent }: { agent: Agent }) {
         {working ? (
           <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-clay-bg px-2 py-0.5 font-mono text-[9.5px] font-semibold uppercase tracking-[0.1em] text-clay">
             <span className="size-1.5 rounded-full bg-clay motion-safe:animate-pulse" aria-hidden />
-            live
+            {pulse.sessions.length} live
           </span>
         ) : (
           <span className="inline-flex shrink-0 items-center rounded-full border border-chip-bd bg-chip px-2 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.1em] text-text-4">
@@ -57,26 +64,53 @@ function MissionCard({ agent }: { agent: Agent }) {
 
       <div className="rounded-lg border border-hair bg-inset px-3 py-2.5">
         {working ? (
-          <p className="truncate font-mono text-[11.5px] text-text-2">
-            <span className="text-clay">▸</span> {pulse.currentTask}
-          </p>
+          <div className="flex flex-col gap-1.5">
+            {sessions.map((session) => {
+              const meta = SESSION_STATE_META[session.state];
+              return (
+                <p key={session.key} className="flex items-center gap-2 font-mono text-[11px]">
+                  <span
+                    className={cn(
+                      "size-1.5 shrink-0 rounded-full",
+                      meta.dotClass,
+                      session.state === "active" && "motion-safe:animate-pulse",
+                    )}
+                    aria-hidden
+                  />
+                  <span className="shrink-0 text-text-3">{repoShort(session.repo)}</span>
+                  <span
+                    className={cn(
+                      "min-w-0 truncate",
+                      session.state === "needs_you" ? "text-amber" : "text-text-2",
+                    )}
+                  >
+                    {session.task}
+                  </span>
+                  <span className="ml-auto shrink-0 text-[9.5px] text-text-4">
+                    {session.elapsed}
+                  </span>
+                </p>
+              );
+            })}
+          </div>
         ) : (
-          <p className="truncate font-mono text-[11.5px] text-text-4">
-            idle — last active {pulse.lastActive}
-          </p>
-        )}
-        <div className="mt-1.5 flex flex-col gap-0.5">
-          {pulse.feed.slice(0, 2).map((line) => (
-            <p key={line} className="truncate font-mono text-[10.5px] leading-[1.6] text-text-4">
-              {line}
+          <>
+            <p className="truncate font-mono text-[11.5px] text-text-4">
+              no live sessions — last active {pulse.lastActive}
             </p>
-          ))}
-        </div>
+            <p className="mt-1.5 truncate font-mono text-[10.5px] leading-[1.6] text-text-4">
+              {pulse.feed[0]}
+            </p>
+          </>
+        )}
       </div>
 
       <div className="flex items-center gap-4">
         <MiniMetric label="queue" value={String(pulse.queued)} />
-        <MiniMetric label="ctx" value={`${pulse.contextPct}%`} />
+        <MiniMetric
+          label="repos"
+          value={String(new Set(pulse.sessions.map((session) => session.repo)).size)}
+        />
         <MiniMetric label="today" value={pulse.costToday} />
         <span className="ml-auto font-mono text-[10px] text-text-4">up {pulse.uptime}</span>
       </div>

@@ -2,14 +2,15 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { avatarTint } from "../../presentation";
 import type { Agent } from "../../schema";
-import { AccessPips, TintAvatar } from "./fragments";
-import { agentPulse } from "./prototype-data";
+import { AccessPips, SESSION_STATE_META, TintAvatar } from "./fragments";
+import { agentPulse, repoShort } from "./prototype-data";
 
 // PROTOTYPE — throwaway. Variant F "Hover reveal": the progressive-disclosure treatment.
-// Research basis: keep the resting card glanceable (identity + live state only, with the
-// agent's tint as an ambient glow) and slide a detail layer — description, stack, numbers,
-// quick actions — up on hover/focus. A persistent "hover for detail" hint keeps the
-// disclosure discoverable, and focus-within mirrors hover for keyboard users.
+// Research basis: keep the resting card glanceable — identity, tint glow, and the session
+// fan-out compressed to one state-colored dot per live session — and slide a detail layer
+// up on hover/focus: the session list (repo · task) while deployed, the mandate while idle,
+// plus numbers and quick actions. A persistent "hover for detail" hint keeps the disclosure
+// discoverable, and focus-within mirrors hover for keyboard users.
 
 export const REVEAL_NAME = "Hover reveal";
 
@@ -52,14 +53,28 @@ function RevealCard({ agent }: { agent: Agent }) {
             {agent.role}
           </span>
           <span className="mt-1 inline-flex items-center gap-1.5 font-mono text-[10.5px] text-text-4">
-            <span
-              className={cn(
-                "size-1.5 rounded-full",
-                working ? "bg-clay motion-safe:animate-pulse" : "bg-text-4",
-              )}
-              aria-hidden
-            />
-            {working ? "working · now" : `idle · ${pulse.lastActive}`}
+            {working ? (
+              <>
+                <span className="inline-flex items-center gap-1" aria-hidden>
+                  {pulse.sessions.map((session) => (
+                    <span
+                      key={session.key}
+                      className={cn(
+                        "size-1.5 rounded-full",
+                        SESSION_STATE_META[session.state].dotClass,
+                        session.state === "active" && "motion-safe:animate-pulse",
+                      )}
+                    />
+                  ))}
+                </span>
+                {pulse.sessions.length} live session{pulse.sessions.length === 1 ? "" : "s"}
+              </>
+            ) : (
+              <>
+                <span className="size-1.5 rounded-full bg-text-4" aria-hidden />
+                idle · {pulse.lastActive}
+              </>
+            )}
           </span>
         </span>
       </Link>
@@ -72,20 +87,45 @@ function RevealCard({ agent }: { agent: Agent }) {
       </span>
 
       <div className="absolute inset-x-0 bottom-0 translate-y-full border-t border-hair bg-panel-2 p-3 transition-transform duration-300 ease-out group-focus-within:translate-y-0 group-hover:translate-y-0 motion-reduce:transition-none">
-        <p className="line-clamp-2 text-[11.5px] leading-snug text-text-2">{agent.description}</p>
-        <div className="mt-2 flex items-center gap-1.5 overflow-hidden">
-          {stack.map((item) => (
-            <span
-              key={`${item.kind}:${item.label}`}
-              className={cn(
-                "shrink-0 rounded px-1.5 py-0.5 font-mono text-[9.5px]",
-                item.kind === "skill" ? "bg-green-bg text-green" : "bg-violet-bg text-violet",
-              )}
-            >
-              {item.label}
-            </span>
-          ))}
-        </div>
+        {working ? (
+          <div className="flex flex-col gap-1">
+            {pulse.sessions.slice(0, 2).map((session) => {
+              const meta = SESSION_STATE_META[session.state];
+              return (
+                <p key={session.key} className="flex items-center gap-1.5 font-mono text-[10.5px]">
+                  <span className={cn("size-1 shrink-0 rounded-full", meta.dotClass)} aria-hidden />
+                  <span className="shrink-0 text-text-3">{repoShort(session.repo)}</span>
+                  <span className="min-w-0 truncate text-text-2">{session.task}</span>
+                </p>
+              );
+            })}
+            {pulse.sessions.length > 2 && (
+              <p className="font-mono text-[9.5px] text-text-4">
+                +{pulse.sessions.length - 2} more session
+                {pulse.sessions.length - 2 === 1 ? "" : "s"}
+              </p>
+            )}
+          </div>
+        ) : (
+          <>
+            <p className="line-clamp-2 text-[11.5px] leading-snug text-text-2">
+              {agent.description}
+            </p>
+            <div className="mt-2 flex items-center gap-1.5 overflow-hidden">
+              {stack.map((item) => (
+                <span
+                  key={`${item.kind}:${item.label}`}
+                  className={cn(
+                    "shrink-0 rounded px-1.5 py-0.5 font-mono text-[9.5px]",
+                    item.kind === "skill" ? "bg-green-bg text-green" : "bg-violet-bg text-violet",
+                  )}
+                >
+                  {item.label}
+                </span>
+              ))}
+            </div>
+          </>
+        )}
         <div className="mt-2 flex items-center justify-between font-mono text-[10.5px] text-text-3">
           <span>
             {agent.usage.tasks} · <span className="text-green">{agent.usage.merged}</span>

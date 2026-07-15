@@ -2,14 +2,15 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { Agent } from "../../schema";
-import { ACCESS_TEXT, Sparkline, TintAvatar } from "./fragments";
-import { agentPulse } from "./prototype-data";
+import { ACCESS_TEXT, SESSION_STATE_META, Sparkline, TintAvatar } from "./fragments";
+import { agentPulse, repoShort } from "./prototype-data";
 
 // PROTOTYPE — throwaway. Variant C "Bento cells": the modular treatment. Research basis: the
 // bento-grid pattern (strict labeled cells inside one container — "a dashboard of nuggets" you
-// can scan in one sweep) applied INSIDE the card: identity, now, model, access, stack and
+// can scan in one sweep) applied INSIDE the card: identity, sessions, model, access, stack and
 // signal each get a hairline-grouted cell with a tiny caps label, so every fact has a fixed
-// address and the eye can jump straight to it.
+// address and the eye can jump straight to it. The SESSIONS cell carries the concurrent
+// fan-out — one row per repo the agent is deployed into right now.
 
 export const BENTO_NAME = "Bento cells";
 
@@ -57,17 +58,32 @@ function BentoCard({ agent }: { agent: Agent }) {
             )}
             aria-hidden
           />
-          {agent.status}
+          {working ? `${pulse.sessions.length} live` : "idle"}
         </span>
       </div>
 
-      <Cell label="now" span>
+      <Cell label={working ? `sessions · ${pulse.sessions.length}` : "sessions"} span>
         {working ? (
-          <p className="line-clamp-2 font-mono text-[11px] leading-[1.6] text-text-2">
-            {pulse.currentTask}
-          </p>
+          <div className="flex flex-col gap-1">
+            {pulse.sessions.slice(0, 3).map((session) => {
+              const meta = SESSION_STATE_META[session.state];
+              return (
+                <p key={session.key} className="flex items-center gap-2 font-mono text-[10.5px]">
+                  <span
+                    className={cn("size-1.5 shrink-0 rounded-full", meta.dotClass)}
+                    aria-hidden
+                  />
+                  <span className="w-[52px] shrink-0 truncate text-text-3">
+                    {repoShort(session.repo)}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-text-2">{session.task}</span>
+                  <span className="shrink-0 text-[9px] text-text-4">{session.elapsed}</span>
+                </p>
+              );
+            })}
+          </div>
         ) : (
-          <p className="font-mono text-[11px] text-text-4">idle · last active {pulse.lastActive}</p>
+          <p className="font-mono text-[11px] text-text-4">none · last active {pulse.lastActive}</p>
         )}
       </Cell>
 
@@ -76,7 +92,7 @@ function BentoCard({ agent }: { agent: Agent }) {
         <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-inset">
           <div className="h-full rounded-full bg-blue" style={{ width: `${pulse.contextPct}%` }} />
         </div>
-        <p className="mt-1 font-mono text-[9.5px] text-text-4">ctx {pulse.contextPct}%</p>
+        <p className="mt-1 font-mono text-[9.5px] text-text-4">ctx avg {pulse.contextPct}%</p>
       </Cell>
 
       <Cell label="access">

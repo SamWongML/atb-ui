@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type { Agent } from "../../schema";
-import { Sparkline, TintAvatar, TrendBadge } from "./fragments";
-import { agentPulse } from "./prototype-data";
+import { SESSION_STATE_META, Sparkline, TintAvatar, TrendBadge } from "./fragments";
+import { agentPulse, repoShort } from "./prototype-data";
 
 // PROTOTYPE — throwaway. Variant B "Scorecard": the observability treatment. Research basis:
 // KPI-card anatomy (label → headline value → delta badge → word-sized sparkline) and Tufte's
 // "a current number is useless without history" — plus the metric vocabulary agent-observability
 // tools converge on (runs, success rate, tokens, cost, latency). Identity is compressed to a
-// single line; the numbers are the card.
+// single line; the numbers are the card. Concurrent deployment shows as a chip strip — one
+// state-dotted repo chip per live session — because here sessions are a dimension, not the hero.
 
 export const SCORECARD_NAME = "Scorecard";
 
@@ -52,7 +53,7 @@ function ScoreCard({ agent }: { agent: Agent }) {
             )}
             aria-hidden
           />
-          {agent.status}
+          {working ? `${pulse.sessions.length} live` : "idle"}
         </span>
       </div>
 
@@ -72,6 +73,26 @@ function ScoreCard({ agent }: { agent: Agent }) {
           values={pulse.activity}
           className={cn("h-8 w-[88px] shrink-0", pulse.deltaPct >= 0 ? "text-green" : "text-red")}
         />
+      </div>
+
+      <div className="flex items-center gap-1.5 overflow-hidden">
+        {working ? (
+          pulse.sessions.map((session) => {
+            const meta = SESSION_STATE_META[session.state];
+            return (
+              <span
+                key={session.key}
+                title={`${session.repo} · ${meta.label} · ${session.elapsed}`}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-chip-bd bg-chip px-1.5 py-0.5 font-mono text-[9.5px] text-text-3"
+              >
+                <span className={cn("size-1 rounded-full", meta.dotClass)} aria-hidden />
+                {repoShort(session.repo)}
+              </span>
+            );
+          })
+        ) : (
+          <span className="font-mono text-[9.5px] text-text-4">no live sessions</span>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-hair bg-hair">

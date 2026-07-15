@@ -3,13 +3,32 @@ import type { Agent } from "../../schema";
 
 // PROTOTYPE — throwaway (agent-card design gallery, see gallery.tsx). The card treatments
 // under evaluation want richer runtime texture than the Agent schema carries today — the
-// current task, an activity trend, context pressure, cost-today — so this module fabricates
-// plausible values SEEDED FROM THE AGENT ID: identical on server and client (no hydration
-// drift) and stable across renders. Every number here is fiction; it ships nowhere and is
-// deleted with the gallery.
+// LIVE SESSIONS an agent is running (an agent is a role: one definition, fanned out into
+// concurrent sessions across different repos), an activity trend, context pressure,
+// cost-today — so this module fabricates plausible values SEEDED FROM THE AGENT ID:
+// identical on server and client (no hydration drift) and stable across renders. Every
+// number here is fiction; it ships nowhere and is deleted with the gallery.
+
+/** Live lifecycle states a running session can be in (mirrors features/sessions). */
+export type PulseSessionState = "active" | "needs_you" | "review";
+
+/** One concurrent session of this agent — its repo, worktree/branch, and live task. */
+export type PulseSession = {
+  key: string;
+  repo: string;
+  branch: string;
+  task: string;
+  state: PulseSessionState;
+  elapsed: string;
+};
 
 export type AgentPulse = {
-  /** What the agent is doing right now — the "proactive status" line for working agents. */
+  /**
+   * The agent's live sessions, one per repo it is currently deployed into. Working
+   * agents carry 1–3; idle agents carry none. Each variant orders them to taste.
+   */
+  sessions: readonly PulseSession[];
+  /** What the agent is doing right now — single-line fallback when one line must do. */
   currentTask: string;
   /** Recent activity lines, newest first, terminal-flavoured. */
   feed: readonly string[];
@@ -96,8 +115,114 @@ const ROLE_TASKS: Record<string, string> = {
   Synthesizer: "condensing verdicts into a report",
 };
 
+// Hand-written concurrent sessions for the seed roster — same agent, several repos at
+// once, with a mix of live states so every treatment shows the full vocabulary.
+const SESSIONS: Record<string, readonly PulseSession[]> = {
+  orchestrator: [
+    {
+      key: "or-1",
+      repo: "meridian/console",
+      branch: "main",
+      task: "delegating phase 2/3 → builder · test-runner",
+      state: "active",
+      elapsed: "18m",
+    },
+    {
+      key: "or-2",
+      repo: "meridian/api",
+      branch: "plan/rollout",
+      task: "sequencing sdk-v2 rollout phases",
+      state: "active",
+      elapsed: "6m",
+    },
+    {
+      key: "or-3",
+      repo: "meridian/billing",
+      branch: "plan/migration",
+      task: "migration plan awaiting your sign-off",
+      state: "needs_you",
+      elapsed: "42m",
+    },
+  ],
+  recon: [
+    {
+      key: "rc-1",
+      repo: "meridian/billing",
+      branch: "read-only",
+      task: "mapping billing/v2 module graph — 34 files in",
+      state: "active",
+      elapsed: "11m",
+    },
+    {
+      key: "rc-2",
+      repo: "meridian/api",
+      branch: "read-only",
+      task: "indexing entrypoints + sdk usages",
+      state: "active",
+      elapsed: "3m",
+    },
+  ],
+  builder: [
+    {
+      key: "bd-1",
+      repo: "meridian/billing",
+      branch: "wt/billing-4",
+      task: "porting stripe client to sdk-v2",
+      state: "active",
+      elapsed: "1h 04m",
+    },
+    {
+      key: "bd-2",
+      repo: "meridian/api",
+      branch: "wt/hooks-1",
+      task: "bash approval needed: pnpm migrate",
+      state: "needs_you",
+      elapsed: "27m",
+    },
+    {
+      key: "bd-3",
+      repo: "meridian/console",
+      branch: "wt/tokens-2",
+      task: "chip retheme ready for review",
+      state: "review",
+      elapsed: "2h 10m",
+    },
+  ],
+};
+
+const REPO_POOL = [
+  "meridian/console",
+  "meridian/api",
+  "meridian/billing",
+  "meridian/docs",
+  "meridian/infra",
+] as const;
+const ELAPSED_POOL = ["4m", "13m", "31m", "58m", "1h 22m"] as const;
+
 const IDLE_AGES = ["9m ago", "26m ago", "1h ago", "2h ago", "5h ago", "yesterday"] as const;
 const UPTIMES = ["6d", "12d", "19d", "27d", "41d"] as const;
+
+/** "meridian/billing" → "billing" — cards mostly want the short repo name. */
+export function repoShort(repo: string): string {
+  return repo.split("/")[1] ?? repo;
+}
+
+/** Fallback sessions for agents created at runtime — 1–2 generic ones while working. */
+function fabricateSessions(agent: Agent, random: () => number): PulseSession[] {
+  if (agent.status !== "working") return [];
+  const count = 1 + Math.floor(random() * 2);
+  return Array.from({ length: count }, (_, i) => {
+    const roll = random();
+    return {
+      key: `${agent.id}-${i}`,
+      repo: REPO_POOL[Math.floor(random() * REPO_POOL.length)] ?? "meridian/console",
+      branch: `wt/${agent.id.slice(0, 6)}-${i + 1}`,
+      task: ROLE_TASKS[agent.role] ?? "awaiting first delegation",
+      state: roll < 0.7 ? "active" : roll < 0.85 ? "review" : "needs_you",
+      elapsed: ELAPSED_POOL[Math.floor(random() * ELAPSED_POOL.length)] ?? "12m",
+    };
+  });
+}
 
 export function agentPulse(agent: Agent): AgentPulse {
   const seed = hashSeed(agent.id);
@@ -116,7 +241,9 @@ export function agentPulse(agent: Agent): AgentPulse {
   }
 
   const cost = leadingNumber(agent.usage.cost);
+  const sessions = working ? (SESSIONS[agent.id] ?? fabricateSessions(agent, random)) : [];
   return {
+    sessions,
     currentTask: TASKS[agent.id] ?? ROLE_TASKS[agent.role] ?? "awaiting first delegation",
     feed: FEEDS[agent.id] ?? ["✓ configured and warmed up", "⋯ awaiting first delegation"],
     lastActive: working ? "now" : (IDLE_AGES[seed % IDLE_AGES.length] ?? "1h ago"),

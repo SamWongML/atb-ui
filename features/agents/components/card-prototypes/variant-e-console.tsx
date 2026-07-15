@@ -1,14 +1,15 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { Agent } from "../../schema";
-import { ACCESS_TEXT, TintAvatar } from "./fragments";
-import { agentPulse } from "./prototype-data";
+import { ACCESS_TEXT, SESSION_STATE_META, TintAvatar } from "./fragments";
+import { agentPulse, repoShort } from "./prototype-data";
 
 // PROTOTYPE — throwaway. Variant E "Console": the terminal-readout treatment. Research basis:
 // the monospace/terminal-inspired dev-tool aesthetic ("Vercel aesthetic": mono type, dot-grid
 // texture, dense key-value alignment) — an agent rendered as the output of `atb agent inspect`,
 // with an ASCII context meter, allow/ask/deny in ANSI-ish colors and a blinking cursor while
-// it works. Technical energy, zero chrome.
+// it works. Concurrent sessions render as a `sess` tree (├/└ rows, one per repo), the way a
+// process tree lists children. Technical energy, zero chrome.
 
 export const CONSOLE_NAME = "Console";
 
@@ -51,21 +52,34 @@ function ConsoleCard({ agent }: { agent: Agent }) {
         <KV k="status">
           {working ? (
             <span className="text-clay">
-              ● working <span className="motion-safe:animate-pulse">▊</span>
+              ● working · {pulse.sessions.length} sess{" "}
+              <span className="motion-safe:animate-pulse">▊</span>
             </span>
           ) : (
             <span className="text-text-3">○ idle</span>
           )}
         </KV>
-        {working && (
-          <KV k="task">
-            <span className="text-text-2">{pulse.currentTask}</span>
+        {working ? (
+          pulse.sessions.map((session, index) => (
+            <KV key={session.key} k={index === 0 ? "sess" : ""}>
+              <span className="text-text-4">
+                {index === pulse.sessions.length - 1 ? "└ " : "├ "}
+              </span>
+              <span className={SESSION_STATE_META[session.state].textClass}>●</span>{" "}
+              <span className="text-text-2">{repoShort(session.repo)}</span>
+              <span className="text-text-4"> @ {session.branch} — </span>
+              <span className="text-text-3">{session.task}</span>
+            </KV>
+          ))
+        ) : (
+          <KV k="sess">
+            <span className="text-text-4">none</span>
           </KV>
         )}
         <KV k="model">
           <span className="text-text-2">{agent.model.toLowerCase().replace(" ", "-")}</span>{" "}
           <span className="text-text-4">
-            · ctx {contextMeter(pulse.contextPct)} {pulse.contextPct}%
+            · ctx~ {contextMeter(pulse.contextPct)} {pulse.contextPct}%
           </span>
         </KV>
         <KV k="access">

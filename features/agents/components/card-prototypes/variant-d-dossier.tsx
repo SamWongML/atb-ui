@@ -2,14 +2,16 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { Agent } from "../../schema";
-import { ACCESS_TEXT } from "./fragments";
-import { agentPulse } from "./prototype-data";
+import { ACCESS_TEXT, SESSION_STATE_META } from "./fragments";
+import { agentPulse, repoShort } from "./prototype-data";
 
 // PROTOTYPE — throwaway. Variant D "Dossier": the capability-profile treatment. Research
 // basis: the model-card / persona-card lineage — an agent card as a LEGIBLE record of what
 // this worker is and is permitted to do, which is what builds operator trust. Editorial
 // typography (serif name + prose mandate, à la the app's Newsreader accent), a ruled
-// manifest with access spelled out in words, and almost no color.
+// manifest with access spelled out in words, and almost no color. Concurrent deployment
+// reads as a "deployed" manifest row — repo@worktree per live session, state-dotted —
+// because a personnel file lists postings, it doesn't dramatise them.
 
 export const DOSSIER_NAME = "Dossier";
 
@@ -34,7 +36,7 @@ function DossierCard({ agent }: { agent: Agent }) {
       <div className="flex items-baseline justify-between font-mono text-[9.5px] uppercase tracking-[0.16em] text-text-4">
         <span className="truncate">agent file · {agent.id}</span>
         <span className={cn("shrink-0", working && "text-clay")}>
-          {working ? "● working" : "○ idle"}
+          {working ? `● ${pulse.sessions.length} live` : "○ idle"}
         </span>
       </div>
 
@@ -50,6 +52,20 @@ function DossierCard({ agent }: { agent: Agent }) {
       </p>
 
       <div className="mt-4 flex flex-col">
+        <ManifestRow term="deployed">
+          {pulse.sessions.length > 0 ? (
+            pulse.sessions.map((session, index) => (
+              <span key={session.key}>
+                {index > 0 && <span className="text-text-4"> · </span>}
+                <span className={SESSION_STATE_META[session.state].textClass}>●</span>{" "}
+                {repoShort(session.repo)}
+                <span className="text-text-4">@{session.branch}</span>
+              </span>
+            ))
+          ) : (
+            <span className="text-text-4">nowhere — last active {pulse.lastActive}</span>
+          )}
+        </ManifestRow>
         <ManifestRow term="skills">
           {agent.skills.length > 0 ? agent.skills.join(", ") : "—"}
         </ManifestRow>

@@ -1,17 +1,33 @@
 import { cn } from "@/lib/utils";
 import { avatarTint, PERMISSION_META } from "../../presentation";
 import type { Agent, AgentPermission, AgentPermissions } from "../../schema";
+import type { PulseSessionState } from "./prototype-data";
 
 // PROTOTYPE — throwaway (agent-card design gallery, see gallery.tsx). Word-sized atoms the
-// variants share: the tinted avatar tile, a Tufte sparkline, a trend badge, permission pips
-// and the allow/ask/deny text colors. Deliberately nothing bigger lives here — each variant
-// owns its layout wholesale, or the comparison stops being a comparison.
+// variants share: the tinted avatar tile, a Tufte sparkline, a trend badge, permission pips,
+// the allow/ask/deny text colors and the session-state colors. Deliberately nothing bigger
+// lives here — each variant owns its layout wholesale, or the comparison stops being a
+// comparison.
 
 /** allow / ask / deny as colored words (CONTEXT.md: green · amber · red). */
 export const ACCESS_TEXT: Record<AgentPermission, string> = {
   allow: "text-green",
   ask: "text-amber",
   deny: "text-red",
+};
+
+/**
+ * Live session states, mirroring the sessions feature vocabulary (CONTEXT.md:
+ * needs-you = amber · active = clay · review = violet) so an agent's session fan-out
+ * reads with the exact same colors as the Sessions screen.
+ */
+export const SESSION_STATE_META: Record<
+  PulseSessionState,
+  { label: string; dotClass: string; textClass: string }
+> = {
+  active: { label: "active", dotClass: "bg-clay", textClass: "text-clay" },
+  needs_you: { label: "needs you", dotClass: "bg-amber", textClass: "text-amber" },
+  review: { label: "review", dotClass: "bg-violet", textClass: "text-violet" },
 };
 
 export function TintAvatar({ agent, className }: { agent: Agent; className?: string }) {
